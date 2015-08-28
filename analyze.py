@@ -16,8 +16,6 @@ $ python analyze.py data
 """
 
 import argparse
-import csv
-import json
 import os
 import sys
 
@@ -31,6 +29,8 @@ import summarize
 
 # HTTP connection
 import requests
+
+import urllib
 
 from SPARQLWrapper import SPARQLWrapper, JSON
 
@@ -65,9 +65,7 @@ def analyze(inputdir, dirnames):
             summarize.summarize_records(normalized_files, inputdir + '/summary_' + mode_normalized + '.csv')
             enriched_files = os.listdir(enriched_path)
             enriched_files = [(enriched_path + '/' + element) for element in enriched_files]
-            #for elem in enriched_files:
             summarize.summarize_records(enriched_files, inputdir + '/summary_' + mode_enriched + '.csv')
-#            summarize.summarize_titles(enriched_files, inputdir + '/summary_titles.csv')
             summarize.summarize_titles(normalized_files, inputdir + '/summary_titles.csv')
         else:
             print 'Error. ' + mode_enriched + ' folder is missing.'
@@ -76,11 +74,9 @@ def analyze(inputdir, dirnames):
 
     # spot entities - detects all the mentions in DBPedia that could refer to an entity in the text
     query_list = summarize.read_summary(inputdir + '/summary_titles.csv')
-    #query = " ".join(query_list)
     print("\tSearching Dexter for author, subject and title.")
 
     for query in query_list[1:3]:
-        query = query.replace(', ',' ')
         print 'query:', query
         dbpedia_items = find_dbpedia_items(query)
         if(dbpedia_items is None):
@@ -90,23 +86,30 @@ def analyze(inputdir, dirnames):
             print(len(dbpedia_items), "results.")
 
     # get description for each dexter ID - get DBPedia ID
+    sparql = SPARQLWrapper("http://dbpedia.org/sparql")
     for key, value in dbpedia_items.iteritems():
         dbpedia_id = find_dbpedia_id(key)
         print 'DBPedia ID', dbpedia_id
+        id_core = dbpedia_id.split("/")[-1]
+        print 'id core', id_core
+        query_string = \
+            "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " \
+            + "SELECT ?label ?type ?comment " \
+            + "WHERE { " \
+            + "<http://dbpedia.org/resource/" + id_core + "> rdfs:label ?label . " \
+            + "<http://dbpedia.org/resource/" + id_core + "> rdf:type ?type . " \
+            + "<http://dbpedia.org/resource/" + id_core + "> rdfs:comment ?comment}"
+        print 'DBPedia query string: ', query_string
 
-    # use SPARQL query with DBPedia ID to extract more information
-    sparql = SPARQLWrapper("http://dbpedia.org/sparql")
-    sparql.setQuery("""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        SELECT ?label
-        WHERE { <http://dbpedia.org/resource/Asturias> rdfs:label ?label }
-        """)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
+        # use SPARQL query with DBPedia ID to extract more information
+        sparql.setQuery(query_string)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
 
-    for result in results["results"]["bindings"]:
-        print(result["label"]["value"])
-
+        for result in results["results"]["bindings"]:
+            print('label: ', result["label"]["value"])
+            print('type: ', result["type"]["value"])
+            print('comment: ', result["comment"]["value"])
 
     print '+++ Analyzing completed +++'
 
@@ -118,10 +121,6 @@ def find_dbpedia_items(query):
                'text': query,
                'format': 'text'}
     r = requests.get(DEXTER_API_URI, params=payload)
-    #payload = {'text': query}
-#    payload = {'document':{'fields':{'body':{'name':'body','value':query}}}}
-##    payload = {'content':query,'text':query,'document':{'fields':{'body':{'name':'body','value':query}}}}
-##    r = requests.post(DEXTER_API_URI, data=json.dumps(payload),json=json.dumps(payload)) #body=query)
     print 'status code', r.status_code
     if(r.status_code != 200):
         print("FAILURE: Request", r.url, "failed")
@@ -131,6 +130,7 @@ def find_dbpedia_items(query):
         return None
     else:
         return result['entities']
+
 
 # sample link http://dexterdemo.isti.cnr.it:8080/dexter-webapp/api/rest/get-desc?id=49109&title-only=false
 def find_dbpedia_id(query):
@@ -143,7 +143,6 @@ def find_dbpedia_id(query):
         return None
     result = r.json()
     return result.get('url')
-
 
 
 # Main analyzing routine

@@ -26,9 +26,10 @@ Starting from the ONB's raw music score dataset (Aleph export) data aggregation 
 
 + Preconditions: 
     + Python 2.7 
-    + requests package
-    + BeautifulSoup
-    + SPARQLWrapper
+    + requests 2.7.0 package for HTTP requests
+    + BeautifulSoup package for normalization
+    + SPARQLWrapper 1.6.4 and rdflib 4.2.1 packages for SPARQL requests
+    + goslate 1.5.0 package for Google translate requests
 
 Install dependencies:
 
