@@ -67,6 +67,7 @@ def analyze(inputdir, dirnames):
             enriched_files = [(enriched_path + '/' + element) for element in enriched_files]
             summarize.summarize_records(enriched_files, inputdir + '/summary_' + mode_enriched + '.csv')
             summarize.summarize_titles(normalized_files, inputdir + '/summary_titles.csv')
+            summarize.summarize_authors(normalized_files, inputdir + '/summary_authors.csv')
         else:
             print 'Error. ' + mode_enriched + ' folder is missing.'
     else:

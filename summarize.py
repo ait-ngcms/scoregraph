@@ -112,6 +112,38 @@ def summarize_titles_data(data):
     return entry
 
 
+def summarize_authors_data(data, fieldnames):
+
+    global link_person_gnd
+    link_person_gnd = []
+    global entries
+    entries = []
+    onb_id = ''
+
+    if('doc_id' in data):
+        onb_id = data['doc_id']
+        print data['doc_id']
+
+    if('persons' in data):
+        for person in data['persons']:
+            author = person['name']
+            if('sameas' in person):
+                 links = [link for link in person['sameas']]
+                 link_person_gnd = [link for link in links
+                                         if 'gnd' in link]
+            #entry = {
+            #    'onb id': onb_id,
+            #    'author name': author,
+            #    'gnd url': link_person_gnd[0],
+            #    'dbpedia id': ''
+            #}
+            values = [onb_id, author, link_person_gnd[0],'']
+            entry = dict(zip(fieldnames, values))
+            entries.append(entry)
+
+    return entries
+
+
 def summarize_titles(inputfiles, outputfile):
 
     print("Summarizing", len(inputfiles), "titles in", outputfile)
@@ -127,6 +159,24 @@ def summarize_titles(inputfiles, outputfile):
             data = json.loads(record, encoding='utf-8')
             entry = summarize_titles_data(data)
             writer.writerow(entry)
+
+
+def summarize_authors(inputfiles, outputfile):
+
+    print("Summarizing", len(inputfiles), "authors in", outputfile)
+    with codecs.open(outputfile, 'w') as csvfile:
+        fieldnames = ['onb id',
+                      'author name',
+                      'gnd url',
+                      'dbpedia id']
+
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=fieldnames, lineterminator='\n')
+        writer.writeheader()
+        for filename, record in read_records(inputfiles):
+            data = json.loads(record, encoding='utf-8')
+            entries = summarize_authors_data(data, fieldnames)
+            #for entry in entries:
+            writer.writerows(entries)
 
 
 def read_summary(inputfile):
