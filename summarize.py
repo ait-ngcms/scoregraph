@@ -16,6 +16,15 @@ import goslate
 
 from common import read_records
 
+import dbpedia_helper
+
+
+DOC_ID_JSON = 'doc_id'
+PERSONS_JSON = 'persons'
+SAMEAS_JSON = 'sameas'
+GND_JSON = 'gnd'
+NAME_JSON = 'name'
+
 gs = goslate.Goslate()
 
 
@@ -114,32 +123,38 @@ def summarize_titles_data(data):
 
 def summarize_authors_data(data, fieldnames):
 
-    global link_person_gnd
-    link_person_gnd = []
-    global entries
     entries = []
     onb_id = ''
 
-    if('doc_id' in data):
-        onb_id = data['doc_id']
-        print data['doc_id']
+    if(DOC_ID_JSON in data):
+        onb_id = data[DOC_ID_JSON]
+        print data[DOC_ID_JSON]
 
-    if('persons' in data):
-        for person in data['persons']:
-            author = person['name']
-            if('sameas' in person):
-                 links = [link for link in person['sameas']]
+    if(PERSONS_JSON in data):
+        isFirstTime = True
+        for person in data[PERSONS_JSON]:
+            author = person[NAME_JSON]
+            link_person_gnd = []
+            if(SAMEAS_JSON in person):
+                 links = [link for link in person[SAMEAS_JSON]]
                  link_person_gnd = [link for link in links
-                                         if 'gnd' in link]
-            #entry = {
-            #    'onb id': onb_id,
-            #    'author name': author,
-            #    'gnd url': link_person_gnd[0],
-            #    'dbpedia id': ''
-            #}
-            values = [onb_id, author, link_person_gnd[0],'']
+                                         if GND_JSON in link]
+
+            dbpedia_items = dbpedia_helper.find_dbpedia_items(author)
+            dbpedia_id_res = ''
+            for key, value in dbpedia_items.iteritems():
+                dbpedia_id = dbpedia_helper.find_dbpedia_id(key)
+                byte_str = dbpedia_id.encode('utf8', 'ignore')
+                print 'DBPedia ID', byte_str
+                dbpedia_id_res = byte_str + ' ' + dbpedia_id_res
+
+            if(isFirstTime == False):
+                onb_id = ''
+
+            values = [onb_id, author, link_person_gnd[0], dbpedia_id_res]
             entry = dict(zip(fieldnames, values))
             entries.append(entry)
+            isFirstTime = False
 
     return entries
 
@@ -175,7 +190,6 @@ def summarize_authors(inputfiles, outputfile):
         for filename, record in read_records(inputfiles):
             data = json.loads(record, encoding='utf-8')
             entries = summarize_authors_data(data, fieldnames)
-            #for entry in entries:
             writer.writerows(entries)
 
 
@@ -187,6 +201,16 @@ def read_summary(inputfile):
         for row in summary_reader:
             row_str = unicode(', '.join(row[1:]), 'utf-8')
             summary.append(row_str)
+        return summary
+
+
+def read_csv_summary(inputfile):
+    print 'Read summary: ', inputfile
+    with open(inputfile, 'rb') as csvfile:
+        summary_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
+        summary = []
+        for row in summary_reader:
+            summary.append(row)
         return summary
 
 

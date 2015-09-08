@@ -27,15 +27,10 @@ import normalize
 import enrich
 import summarize
 
-# HTTP connection
-import requests
+import dbpedia_helper
 
-import urllib
+SUMMARY_AUTHORS_FILE = 'summary_authors.csv'
 
-from SPARQLWrapper import SPARQLWrapper, JSON
-
-DEXTER_API_URI            = "http://dexterdemo.isti.cnr.it:8080/dexter-webapp/api/rest/spot-entities"
-DEXTER_API_DBPEDIA_ID_URI = "http://dexterdemo.isti.cnr.it:8080/dexter-webapp/api/rest/get-desc?"
 
 def analyze(inputdir, dirnames):
 
@@ -46,7 +41,7 @@ def analyze(inputdir, dirnames):
     normalized_path = inputdir + '/' + mode_normalized
     enriched_path = inputdir + '/' + mode_enriched
 
-    # normalize enitities
+    # normalize entities
     if mode_raw in dirnames:
         raw_files = os.listdir(raw_path)
         raw_files = [(raw_path + '/' + element) for element in raw_files]
@@ -67,83 +62,19 @@ def analyze(inputdir, dirnames):
             enriched_files = [(enriched_path + '/' + element) for element in enriched_files]
             summarize.summarize_records(enriched_files, inputdir + '/summary_' + mode_enriched + '.csv')
             summarize.summarize_titles(normalized_files, inputdir + '/summary_titles.csv')
-            summarize.summarize_authors(normalized_files, inputdir + '/summary_authors.csv')
+            summarize.summarize_authors(normalized_files, inputdir + '/' + SUMMARY_AUTHORS_FILE)
         else:
             print 'Error. ' + mode_enriched + ' folder is missing.'
     else:
         print 'Error. ' + mode_normalized + ' folder is missing.'
 
-    # spot entities - detects all the mentions in DBPedia that could refer to an entity in the text
-    query_list = summarize.read_summary(inputdir + '/summary_titles.csv')
-    print("\tSearching Dexter for author, subject and title.")
+    #query_list = summarize.read_csv_summary(inputdir + '/' + SUMMARY_AUTHORS_FILE)
+    #dbpedia_helper.analyze_authors_by_dbpedia(query_list)
 
-    for query in query_list[1:3]:
-        print 'query:', query
-        dbpedia_items = find_dbpedia_items(query)
-        if(dbpedia_items is None):
-            print("0 results.")
-            continue
-        else:
-            print(len(dbpedia_items), "results.")
-
-    # get description for each dexter ID - get DBPedia ID
-    sparql = SPARQLWrapper("http://dbpedia.org/sparql")
-    for key, value in dbpedia_items.iteritems():
-        dbpedia_id = find_dbpedia_id(key)
-        print 'DBPedia ID', dbpedia_id
-        id_core = dbpedia_id.split("/")[-1]
-        print 'id core', id_core
-        query_string = \
-            "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " \
-            + "SELECT ?label ?type ?comment " \
-            + "WHERE { " \
-            + "<http://dbpedia.org/resource/" + id_core + "> rdfs:label ?label . " \
-            + "<http://dbpedia.org/resource/" + id_core + "> rdf:type ?type . " \
-            + "<http://dbpedia.org/resource/" + id_core + "> rdfs:comment ?comment}"
-        print 'DBPedia query string: ', query_string
-
-        # use SPARQL query with DBPedia ID to extract more information
-        sparql.setQuery(query_string)
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-
-        for result in results["results"]["bindings"]:
-            print('label: ', result["label"]["value"])
-            print('type: ', result["type"]["value"])
-            print('comment: ', result["comment"]["value"])
+#    query_list = summarize.read_summary(inputdir + '/summary_titles.csv')
+#    dbpedia_helper.analyze_titles_by_dbpedia(query_list)
 
     print '+++ Analyzing completed +++'
-
-
-# Sample link http://dexterdemo.isti.cnr.it:8080/dexter-webapp/api/rest/spot-entities?text=Bob%20Dylan&wn=false&debug=false&format=text
-def find_dbpedia_items(query):
-    payload = {'wn': 'false',
-               'debug': 'false',
-               'text': query,
-               'format': 'text'}
-    r = requests.get(DEXTER_API_URI, params=payload)
-    print 'status code', r.status_code
-    if(r.status_code != 200):
-        print("FAILURE: Request", r.url, "failed")
-        return None
-    result = r.json()
-    if result.get('entities') is None:
-        return None
-    else:
-        return result['entities']
-
-
-# sample link http://dexterdemo.isti.cnr.it:8080/dexter-webapp/api/rest/get-desc?id=49109&title-only=false
-def find_dbpedia_id(query):
-    payload = {'id': query,
-               'title-only': 'false'}
-    r = requests.get(DEXTER_API_DBPEDIA_ID_URI, params=payload)
-    print 'find DBPedia ID status code', r.status_code
-    if(r.status_code != 200):
-        print("FAILURE: Request", r.url, "failed")
-        return None
-    result = r.json()
-    return result.get('url')
 
 
 # Main analyzing routine
