@@ -12,6 +12,8 @@ import json
 import sys
 import codecs
 
+import common
+
 import goslate
 
 from common import read_records
@@ -69,7 +71,7 @@ def summarize(data):
     return entry
 
 
-def summarize_titles_data(data):
+def summarize_titles_data(data, fieldnames):
 
     global link_person_gnd
     link_person_gnd = []
@@ -79,13 +81,14 @@ def summarize_titles_data(data):
     authors = []
     global labels
     labels = []
-    if('persons' in data):
-        for person in data['persons']:
-            authors.append(person['name'])
-            if('sameas' in person):
-                 links = [link for link in person['sameas']]
+    if(PERSONS_JSON in data):
+        for person in data[PERSONS_JSON]:
+            name = common.toByteStr(person[NAME_JSON])
+            authors.append(name)
+            if(SAMEAS_JSON in person):
+                 links = [link for link in person[SAMEAS_JSON]]
                  link_person_gnd_tmp = [link for link in links
-                                         if 'gnd' in link]
+                                         if GND_JSON in link]
                  link_person_gnd.append(' '.join(link_person_gnd_tmp))
 
 
@@ -104,20 +107,28 @@ def summarize_titles_data(data):
     titles_res = ''
     str_list = []
     for elem in titles:
-        byte_str = elem.encode('utf8', 'ignore')
+        byte_str = common.toByteStr(elem)
         titles_res = titles_res + byte_str + ' '
         str_list.append(byte_str)
     print 'titles out: ', titles_res
 
     print 'en translation: ', gs.translate(titles_res, 'en')
 
-    entry = {
-        'gnd': ' '.join(map(str,link_person_gnd)),
-        'author': ' '.join(map(str,authors)),
-        'subject': ' '.join(map(str,labels)),
-        'title': titles_res
-    }
+    #entry = {
+    #    'gnd': ' '.join(map(str,link_person_gnd)),
+    #    'author': ' '.join(map(str,authors)),
+    #    'subject': ' '.join(map(str,labels)),
+    #    'title': titles_res
+    #}
 
+    values = [
+        ' '.join(map(str,link_person_gnd))
+        , ' '.join(map(str,authors))
+        , ' '.join(map(str,labels))
+        , titles_res
+    ]
+
+    entry = dict(zip(fieldnames, values))
     return entry
 
 
@@ -144,14 +155,22 @@ def summarize_authors_data(data, fieldnames):
             dbpedia_id_res = ''
             for key, value in dbpedia_items.iteritems():
                 dbpedia_id = dbpedia_helper.find_dbpedia_id(key)
-                byte_str = dbpedia_id.encode('utf8', 'ignore')
-                print 'DBPedia ID', byte_str
-                dbpedia_id_res = byte_str + ' ' + dbpedia_id_res
+                dbpeida_id_str = common.toByteStr(dbpedia_id)
+                print 'DBPedia ID', dbpeida_id_str
+                dbpedia_id_res = dbpeida_id_str + ' ' + dbpedia_id_res
 
             if(isFirstTime == False):
                 onb_id = ''
+            gnd = ''
+            if(len(link_person_gnd) > 0):
+                gnd = link_person_gnd[0]
 
-            values = [onb_id, author, link_person_gnd[0], dbpedia_id_res]
+            values = [
+                onb_id
+                , common.toByteStr(author)
+                , gnd
+                , dbpedia_id_res
+            ]
             entry = dict(zip(fieldnames, values))
             entries.append(entry)
             isFirstTime = False
@@ -168,11 +187,11 @@ def summarize_titles(inputfiles, outputfile):
                       'subject',
                       'title']
 
-        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=fieldnames)
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=fieldnames, lineterminator='\n')
         writer.writeheader()
         for filename, record in read_records(inputfiles):
             data = json.loads(record, encoding='utf-8')
-            entry = summarize_titles_data(data)
+            entry = summarize_titles_data(data, fieldnames)
             writer.writerow(entry)
 
 

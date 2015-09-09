@@ -34,3 +34,23 @@ def write_json_file(outputdir, filename, data):
     with codecs.open(outputdir + "/" + filename, "w", 'utf-8') as out_file:
             json.dump(data, out_file, sort_keys=True, indent=4,
                       ensure_ascii=False, encoding='utf-8')
+
+
+# this method cleans up a temporary directory
+# it is employed before new analysis starts
+def cleanup_tmp_directories(folder):
+    for the_file in os.listdir(folder):
+        file_path = os.path.join(folder, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception, e:
+            print e
+
+
+def toByteStr(text):
+    #print 'toByteStr:', text
+    res = ''
+    if text and text != 'NoneType':
+       res = text.encode('utf8', 'ignore')
+    return res

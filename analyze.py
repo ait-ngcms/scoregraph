@@ -26,9 +26,10 @@ from os import walk
 import normalize
 import enrich
 import summarize
+import common
 
-import dbpedia_helper
 
+SUMMARY_TITLES_FILE = 'summary_titles.csv'
 SUMMARY_AUTHORS_FILE = 'summary_authors.csv'
 
 
@@ -40,6 +41,15 @@ def analyze(inputdir, dirnames):
     raw_path = inputdir + '/' + mode_raw
     normalized_path = inputdir + '/' + mode_normalized
     enriched_path = inputdir + '/' + mode_enriched
+
+    # clean up directories
+    #common.cleanup_tmp_directories(raw_path)
+    #common.cleanup_tmp_directories(normalized_path)
+    #common.cleanup_tmp_directories(enriched_path)
+    #os.remove('/summary_' + mode_normalized + '.csv')
+    #os.remove('/summary_' + mode_enriched + '.csv')
+    #os.remove(SUMMARY_TITLES_FILE)
+    #os.remove(SUMMARY_AUTHORS_FILE)
 
     # normalize entities
     if mode_raw in dirnames:
@@ -61,15 +71,12 @@ def analyze(inputdir, dirnames):
             enriched_files = os.listdir(enriched_path)
             enriched_files = [(enriched_path + '/' + element) for element in enriched_files]
             summarize.summarize_records(enriched_files, inputdir + '/summary_' + mode_enriched + '.csv')
-            summarize.summarize_titles(normalized_files, inputdir + '/summary_titles.csv')
+            summarize.summarize_titles(normalized_files, inputdir + '/' + SUMMARY_TITLES_FILE)
             summarize.summarize_authors(normalized_files, inputdir + '/' + SUMMARY_AUTHORS_FILE)
         else:
             print 'Error. ' + mode_enriched + ' folder is missing.'
     else:
         print 'Error. ' + mode_normalized + ' folder is missing.'
-
-    #query_list = summarize.read_csv_summary(inputdir + '/' + SUMMARY_AUTHORS_FILE)
-    #dbpedia_helper.analyze_authors_by_dbpedia(query_list)
 
 #    query_list = summarize.read_summary(inputdir + '/summary_titles.csv')
 #    dbpedia_helper.analyze_titles_by_dbpedia(query_list)
@@ -93,8 +100,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
                     description="Analyzing data for dataset statistics.")
-    parser.add_argument('inputdir', type=str, #nargs='+',
-                    help="Input files to be processed")
+    parser.add_argument('inputdir', type=str, help="Input files to be processed")
 
     if len(sys.argv) < 1:
         parser.print_help()
