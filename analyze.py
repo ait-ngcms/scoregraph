@@ -51,6 +51,10 @@ def analyze(inputdir, dirnames):
     #os.remove(SUMMARY_TITLES_FILE)
     #os.remove(SUMMARY_AUTHORS_FILE)
 
+    # correct IDs in CSV
+    summarize.correct_authors(inputdir + '/' + SUMMARY_AUTHORS_FILE)
+
+'''
     # normalize entities
     if mode_raw in dirnames:
         raw_files = os.listdir(raw_path)
@@ -82,6 +86,7 @@ def analyze(inputdir, dirnames):
 #    dbpedia_helper.analyze_titles_by_dbpedia(query_list)
 
     print '+++ Analyzing completed +++'
+    '''
 
 
 # Main analyzing routine

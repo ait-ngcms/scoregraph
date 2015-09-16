@@ -142,7 +142,7 @@ def summarize_authors_data(data, fieldnames):
         print data[DOC_ID_JSON]
 
     if(PERSONS_JSON in data):
-        isFirstTime = True
+        #isFirstTime = True
         for person in data[PERSONS_JSON]:
             author = person[NAME_JSON]
             link_person_gnd = []
@@ -159,8 +159,8 @@ def summarize_authors_data(data, fieldnames):
                 print 'DBPedia ID', dbpeida_id_str
                 dbpedia_id_res = dbpeida_id_str + ' ' + dbpedia_id_res
 
-            if(isFirstTime == False):
-                onb_id = ''
+            #if(isFirstTime == False):
+            #    onb_id = ''
             gnd = ''
             if(len(link_person_gnd) > 0):
                 gnd = link_person_gnd[0]
@@ -173,7 +173,7 @@ def summarize_authors_data(data, fieldnames):
             ]
             entry = dict(zip(fieldnames, values))
             entries.append(entry)
-            isFirstTime = False
+            #isFirstTime = False
 
     return entries
 
@@ -210,6 +210,29 @@ def summarize_authors(inputfiles, outputfile):
             data = json.loads(record, encoding='utf-8')
             entries = summarize_authors_data(data, fieldnames)
             writer.writerows(entries)
+
+
+def correct_authors(outputfile):
+
+    print("Correct authors in", outputfile)
+    with open(outputfile.replace('authors','authors-new'), "wt") as fout:
+        f = codecs.open(outputfile, 'r')
+        prev_id = ''
+        for idx, line in enumerate(f):
+            print repr(line)
+            cur_id = ''
+            cur_id = line.split(";")[0]
+            if cur_id:
+                prev_id = cur_id
+            print 'cur_id', cur_id, 'prev_id', prev_id
+            if idx > 1 and (not cur_id or cur_id == ''):
+                #prev_id = cur_id
+                fout.write(prev_id + line)
+            else:
+                # insert previous ID
+                fout.write(line)
+            #if idx == 5:
+            #    break
 
 
 def read_summary(inputfile):
