@@ -28,9 +28,13 @@ import enrich
 import summarize
 import common
 
+import map
+
 
 SUMMARY_TITLES_FILE = 'summary_titles.csv'
 SUMMARY_AUTHORS_FILE = 'summary_authors.csv'
+SUMMARY_AUTHORS_NEW_FILE = 'summary_authors-new.csv'
+MAPPED_AUTHORS_FILE = 'mapped_authors.csv'
 
 
 def analyze(inputdir, dirnames):
@@ -52,9 +56,9 @@ def analyze(inputdir, dirnames):
     #os.remove(SUMMARY_AUTHORS_FILE)
 
     # correct IDs in CSV
-    summarize.correct_authors(inputdir + '/' + SUMMARY_AUTHORS_FILE)
+    #summarize.correct_authors(inputdir + '/' + SUMMARY_AUTHORS_FILE)
 
-'''
+    '''
     # normalize entities
     if mode_raw in dirnames:
         raw_files = os.listdir(raw_path)
@@ -84,9 +88,16 @@ def analyze(inputdir, dirnames):
 
 #    query_list = summarize.read_summary(inputdir + '/summary_titles.csv')
 #    dbpedia_helper.analyze_titles_by_dbpedia(query_list)
+    '''
+
+    # map entities employing Wikidata using GND number
+    map.map_records(
+        inputdir + '/' + SUMMARY_AUTHORS_NEW_FILE
+        , inputdir + '/' + MAPPED_AUTHORS_FILE
+    )
 
     print '+++ Analyzing completed +++'
-    '''
+
 
 
 # Main analyzing routine

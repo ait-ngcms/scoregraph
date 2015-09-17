@@ -220,13 +220,11 @@ def correct_authors(outputfile):
         prev_id = ''
         for idx, line in enumerate(f):
             print repr(line)
-            cur_id = ''
             cur_id = line.split(";")[0]
             if cur_id:
                 prev_id = cur_id
             print 'cur_id', cur_id, 'prev_id', prev_id
             if idx > 1 and (not cur_id or cur_id == ''):
-                #prev_id = cur_id
                 fout.write(prev_id + line)
             else:
                 # insert previous ID
