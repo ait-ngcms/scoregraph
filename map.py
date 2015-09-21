@@ -12,7 +12,9 @@ import sys
 import codecs
 
 import requests
+from simplejson import JSONDecodeError
 
+import json
 
 ONB_COL = 0
 NAME_COL = 1
@@ -72,7 +74,7 @@ def process_http_query(query):
 
     r = requests.get(query)
     if(r.status_code != 200):
-        print("Request error:", r.url)
+        print('Request error:', r.url)
     return r
 
 
@@ -80,12 +82,19 @@ def extract_property_value(response, property):
 
     values = ''
     try:
-        json_data = response.json()
+        #print 'response.content', response.content
+        #print 'tmp response.content', response.content.replace('[]','"None":""')
+        tmp = response.content.replace('[]','"None":""')
+        #json_data = response.json()
+        json_data = json.loads(tmp)
         if str(property) in json_data[PROPS_JSON]:
             property_data_list = json_data[PROPS_JSON][str(property)]
             values = " ".join(str(value_list[VALUE_POS_IN_WIKIDATA_PROP_LIST]) for value_list in property_data_list)
+    except JSONDecodeError as jde:
+        print 'JSONDecodeError. Response author data:', response.content, jde
     except:
-        print "Unexpected error:", sys.exc_info()[0]
+        print 'Response json:', response.content
+        print 'Unexpected error:', sys.exc_info()[0]
     print 'property:', property, 'values:', values
     return values
 
@@ -94,6 +103,9 @@ def extract_wikidata_author_id(response):
 
     try:
         return response.json()[ITEMS_JSON][0]
+    except JSONDecodeError as jde:
+        print 'JSONDecodeError. Response author ID:', response.content
+        print 'Incorrect JSON syntax!', jde
     except IndexError as ie:
         print 'No items found!', ie
     return None
