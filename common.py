@@ -6,6 +6,8 @@ A collection of commonly use data manipulation procedures.
 import json
 import os
 import codecs
+from simplejson import JSONDecodeError
+import sys
 
 
 def progress(progress=0):
@@ -36,6 +38,13 @@ def write_json_file(outputdir, filename, data):
                       ensure_ascii=False, encoding='utf-8')
 
 
+def read_json_file(inputfile):
+
+    with open(inputfile) as data_file:
+        data = json.load(data_file)
+    return data
+
+
 # this method cleans up a temporary directory
 # it is employed before new analysis starts
 def cleanup_tmp_directories(folder):
@@ -54,3 +63,38 @@ def toByteStr(text):
     if text and text != 'NoneType':
        res = text.encode('utf8', 'ignore')
     return res
+
+
+def validate_response_json(response):
+    return validate_json(response.content)
+
+
+def validate_json(data):
+
+    try:
+        #print 'response.content', response.content
+        #print 'tmp response.content', response.content.replace('[]','"None":""')
+        tmp = validate_json_str(data)
+        json_data = json.loads(tmp)
+    except JSONDecodeError as jde:
+        print 'JSONDecodeError. Response author data:', data, jde
+    except:
+        print 'Response json:', data
+        print 'Unexpected error:', sys.exc_info()[0]
+    print 'json_data:', json_data
+    return json_data
+
+
+# This method validates JSON string and replaces empty keys []
+def validate_json_str(data):
+
+    try:
+        tmp = data.replace('[]','"None":""')
+        json_data_str = tmp
+    except JSONDecodeError as jde:
+        print 'JSONDecodeError. Response author data:', data, jde
+    except:
+        print 'Response json:', data
+        print 'Unexpected error:', sys.exc_info()[0]
+    print 'json_data_str:', json_data_str
+    return json_data_str

@@ -30,6 +30,8 @@ import common
 
 import map
 
+import time
+
 
 SUMMARY_TITLES_FILE = 'summary_titles.csv'
 SUMMARY_AUTHORS_FILE = 'summary_authors.csv'
@@ -103,11 +105,16 @@ def analyze(inputdir, dirnames):
 # Main analyzing routine
 
 def analyze_records(inputdir):
+
+    start = time.time()
     print("Analyzing '" + inputdir + "' records.")
 
     for (dirpath, dirnames, filenames) in walk(inputdir):
         analyze(inputdir, dirnames)
         break
+
+    end = time.time()
+    print 'Calculation time:', end - start
 
 
 # Command line parsing

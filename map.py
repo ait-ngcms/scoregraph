@@ -16,15 +16,22 @@ from simplejson import JSONDecodeError
 
 import json
 
+import common
+import glob
+
+
 ONB_COL = 0
 NAME_COL = 1
 GND_COL = 2
-
+SLASH = '/'
+UNDERSCORE = '_'
 
 WIKIDATA_API_URL = 'https://wdq.wmflabs.org/api?q='
 ITEMS_JSON = 'items'
 PROPS_JSON = 'props'
 VALUE_POS_IN_WIKIDATA_PROP_LIST = 2
+WIKIDATA_AUTHOR_DIR = 'data/wikidata_author_dir'
+WIKIDATA_AUTHOR_DATA_DIR = 'data/wikidata_author_data_dir'
 
 
 OCCUPATION_PROP              = 106
@@ -82,18 +89,22 @@ def extract_property_value(response, property):
 
     values = ''
     try:
+        json_data = response
         #print 'response.content', response.content
         #print 'tmp response.content', response.content.replace('[]','"None":""')
-        tmp = response.content.replace('[]','"None":""')
+#        tmp = response.content.replace('[]','"None":""')
+##        tmp = response.replace('[]','"None":""')
         #json_data = response.json()
-        json_data = json.loads(tmp)
+##        json_data = json.loads(tmp)
         if str(property) in json_data[PROPS_JSON]:
             property_data_list = json_data[PROPS_JSON][str(property)]
             values = " ".join(str(value_list[VALUE_POS_IN_WIKIDATA_PROP_LIST]) for value_list in property_data_list)
     except JSONDecodeError as jde:
-        print 'JSONDecodeError. Response author data:', response.content, jde
+        print 'JSONDecodeError. Response author data:', response, jde
+#        print 'JSONDecodeError. Response author data:', response.content, jde
     except:
-        print 'Response json:', response.content
+#        print 'Response json:', response.content
+        print 'Response json:', response
         print 'Unexpected error:', sys.exc_info()[0]
     print 'property:', property, 'values:', values
     return values
@@ -102,7 +113,8 @@ def extract_property_value(response, property):
 def extract_wikidata_author_id(response):
 
     try:
-        return response.json()[ITEMS_JSON][0]
+#        return response.json()[ITEMS_JSON][0]
+        return response[ITEMS_JSON][0]
     except JSONDecodeError as jde:
         print 'JSONDecodeError. Response author ID:', response.content
         print 'Incorrect JSON syntax!', jde
@@ -173,18 +185,42 @@ def extract_gnd_from_line(line):
 
     try:
         row = line.split(";")
-        return row[GND_COL].split('/')[-1]
+        return row[GND_COL].split(SLASH)[-1]
     except IndexError as ie:
         print 'No GND found!', ie
     return None
 
 
-def get_wikidata_author_id_by_gnd(gnd):
+def get_wikidata_author_id_by_gnd(gnd, line):
 
-    wikidata_author_id_response = retrieve_wikidata_author_id(gnd)
-    wikidata_author_id = extract_wikidata_author_id(wikidata_author_id_response)
+    row = line.split(";")
+    inputfile = glob.glob(WIKIDATA_AUTHOR_DIR + SLASH + row[ONB_COL] + UNDERSCORE + gnd + '*')
+    if(inputfile):
+        print 'exists:', inputfile, 'for ONB:', row[ONB_COL]
+        wikidata_author_id_response_content = common.read_json_file(inputfile[0])
+        wikidata_author_id_response_json = json.loads(wikidata_author_id_response_content)
+    else:
+        print 'onb_wikidata not exists for ONB:', row[ONB_COL]
+        wikidata_author_id_response = retrieve_wikidata_author_id(gnd)
+        wikidata_author_id_response_json = wikidata_author_id_response.json()
+        wikidata_author_id_response_content = wikidata_author_id_response.content
+    wikidata_author_id = extract_wikidata_author_id(wikidata_author_id_response_json)
     print 'wikidata_author_id', wikidata_author_id
+    store_wikidata_author_id(line, wikidata_author_id, gnd, wikidata_author_id_response_content)
     return wikidata_author_id
+
+
+# store Wikidata author ID response in format {wikidata-id}_{onb-id}.json
+def store_wikidata_author_id(line, author_id, gnd, response):
+
+    row = line.split(";")
+    common.write_json_file(WIKIDATA_AUTHOR_DIR, str(row[ONB_COL]) + UNDERSCORE + gnd + UNDERSCORE + str(author_id), response)
+
+
+# store Wikidata author data response in format {wikidata-id}.json
+def store_wikidata_author_data(author_id, response):
+
+    common.write_json_file(WIKIDATA_AUTHOR_DATA_DIR, str(author_id), response)
 
 
 def store_author_data_by_gnd(inputfile, writer):
@@ -203,12 +239,22 @@ def store_author_data_by_gnd(inputfile, writer):
 def store_author_data(writer, gnd, gnd_cache, line):
 
     if gnd not in gnd_cache:
-        wikidata_author_id = get_wikidata_author_id_by_gnd(gnd)
+        wikidata_author_id = get_wikidata_author_id_by_gnd(gnd, line)
         if(wikidata_author_id and wikidata_author_id not in gnd_cache):
             gnd_cache.append(wikidata_author_id)
-            author_response_json = retrieve_wikidata_author_data(wikidata_author_id)
-            # store author wikidata JSON in file onb_id_wikidata_id.json
-            entry = build_wikidata_author_entry(author_response_json, line, wikidata_author_id)
+            inputfile = glob.glob(WIKIDATA_AUTHOR_DATA_DIR + SLASH + str(wikidata_author_id) + '*')
+            if(inputfile):
+                print 'exists:', inputfile, 'for wikidata author ID:', wikidata_author_id
+                wikidata_author_data_response_content_tmp = common.read_json_file(inputfile[0])
+                wikidata_author_data_response_content = common.validate_json_str(wikidata_author_data_response_content_tmp)
+                wikidata_author_data_response_json = json.loads(wikidata_author_data_response_content)
+            else:
+                print 'wikidata not exists for wikidata author ID:', wikidata_author_id
+                author_data_response = retrieve_wikidata_author_data(wikidata_author_id)
+                wikidata_author_data_response_json = common.validate_response_json(author_data_response) #author_data_response.json()
+                wikidata_author_data_response_content = author_data_response.content
+            store_wikidata_author_data(wikidata_author_id, wikidata_author_data_response_content)
+            entry = build_wikidata_author_entry(wikidata_author_data_response_json, line, wikidata_author_id)
             writer.writerow(entry)
 
 
