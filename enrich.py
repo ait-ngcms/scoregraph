@@ -7,7 +7,6 @@ $ python enrich.py data/normalized/*.json -o data/enriched -a EUROPEANA_API_KEY
 """
 
 import argparse
-import glob
 import json
 import os
 import sys
@@ -21,7 +20,7 @@ from common import write_json_file, progress, read_records
 
 EUROPEANA_API_URI  = "http://europeana.eu/api/v2/search.json?"
 EUROPEANA_MAX_ROWS = 20
-EUROPEANA_API_KEY  = None
+EUROPEANA_API_KEY  = open("europeana_api_key").read()
 
 
 

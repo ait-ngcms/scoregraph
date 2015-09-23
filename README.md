@@ -30,6 +30,7 @@ Starting from the ONB's raw music score dataset (Aleph export) data aggregation 
     + BeautifulSoup package for normalization
     + SPARQLWrapper 1.6.4 and rdflib 4.2.1 packages for SPARQL requests
     + goslate 1.5.0 package for Google translate requests
+	+ europeana_api_key and freebase_api_key files are required in the root directory containing appropriate keys
 
 Install dependencies:
 

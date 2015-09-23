@@ -19,6 +19,8 @@ import json
 import common
 import glob
 
+import freebase_helper
+
 
 ONB_COL = 0
 NAME_COL = 1
@@ -130,6 +132,8 @@ def build_wikidata_author_entry(
     genres = extract_property_value(author_response_json, GENRE_PROP)
     occupations = extract_property_value(author_response_json, OCCUPATION_PROP)
     freebase = extract_property_value(author_response_json, FREEBASE_ID_PROP)
+    for id in freebase.split(UNDERSCORE):
+        freebase_helper.retrieve_compositions(id)
     viaf = extract_property_value(author_response_json, VIAF_ID_PROP)
     bnf = extract_property_value(author_response_json, BNF_ID_PROP)
     nkc = extract_property_value(author_response_json, NKC_ID_PROP)
