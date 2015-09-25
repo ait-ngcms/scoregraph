@@ -3,7 +3,7 @@
 Script for summarizing data for statistics generation.
 
 Invocation:
-$ python map.py data/normalized/*.json -o summary_authors.csv
+$ python wikidata_helper.py data/normalized/*.json -o summary_authors.csv
 """
 
 import argparse
@@ -11,7 +11,6 @@ import csv
 import sys
 import codecs
 
-import requests
 from simplejson import JSONDecodeError
 
 import json
@@ -21,12 +20,16 @@ import glob
 
 import freebase_helper
 
+import os
+
 
 ONB_COL = 0
 NAME_COL = 1
 GND_COL = 2
 SLASH = '/'
 UNDERSCORE = '_'
+BLANK = ' '
+
 
 WIKIDATA_API_URL = 'https://wdq.wmflabs.org/api?q='
 ITEMS_JSON = 'items'
@@ -34,6 +37,7 @@ PROPS_JSON = 'props'
 VALUE_POS_IN_WIKIDATA_PROP_LIST = 2
 WIKIDATA_AUTHOR_DIR = 'data/wikidata_author_dir'
 WIKIDATA_AUTHOR_DATA_DIR = 'data/wikidata_author_data_dir'
+CATEGORIES_FILE = 'data/categories.csv'
 
 
 OCCUPATION_PROP              = 106
@@ -46,6 +50,8 @@ FREEBASE_ID_PROP             = 646
 GENRE_PROP                   = 136
 IMSLP_ID_PROP                = 839
 NTA_ID_PROP                  = 1006
+
+COMMONS_CATEGORY_PROP        = 373
 
 
 properties = [
@@ -78,13 +84,11 @@ wikidata_author_fieldnames = [
     , 'music_brainz_artist_id'
 ]
 
-
-def process_http_query(query):
-
-    r = requests.get(query)
-    if(r.status_code != 200):
-        print('Request error:', r.url)
-    return r
+wikidata_category_fieldnames = [
+    'wikidata'
+    , 'occupation_id'
+    , 'category'
+]
 
 
 def extract_property_value(response, property):
@@ -92,12 +96,6 @@ def extract_property_value(response, property):
     values = ''
     try:
         json_data = response
-        #print 'response.content', response.content
-        #print 'tmp response.content', response.content.replace('[]','"None":""')
-#        tmp = response.content.replace('[]','"None":""')
-##        tmp = response.replace('[]','"None":""')
-        #json_data = response.json()
-##        json_data = json.loads(tmp)
         if str(property) in json_data[PROPS_JSON]:
             property_data_list = json_data[PROPS_JSON][str(property)]
             values = " ".join(str(value_list[VALUE_POS_IN_WIKIDATA_PROP_LIST]) for value_list in property_data_list)
@@ -131,8 +129,10 @@ def build_wikidata_author_entry(
     row = line.split(";")
     genres = extract_property_value(author_response_json, GENRE_PROP)
     occupations = extract_property_value(author_response_json, OCCUPATION_PROP)
+    for occupation in occupations.split(BLANK):
+        add_occupation(occupation, wikidata_author_id)
     freebase = extract_property_value(author_response_json, FREEBASE_ID_PROP)
-    for id in freebase.split(UNDERSCORE):
+    for id in freebase.split(BLANK):
         freebase_helper.retrieve_compositions(id)
     viaf = extract_property_value(author_response_json, VIAF_ID_PROP)
     bnf = extract_property_value(author_response_json, BNF_ID_PROP)
@@ -161,13 +161,27 @@ def build_wikidata_author_entry(
     return dict(zip(wikidata_author_fieldnames, values))
 
 
+def build_wikidata_occupation_entry(
+        wikidata_occupation_data_response_json, occupation_id, wikidata_author_id):
+
+    category = extract_property_value(wikidata_occupation_data_response_json, COMMONS_CATEGORY_PROP)
+
+    values = [
+        wikidata_author_id
+        , occupation_id
+        , category
+    ]
+
+    return dict(zip(wikidata_category_fieldnames, values))
+
+
 # query Wikidata by GND ID, where GND Identifier is a property P227
 # e.g. https://wdq.wmflabs.org/api?q=string[227:118576291] for Gustav Mahler
 def retrieve_wikidata_author_id(gnd):
 
     query = WIKIDATA_API_URL + 'string[' + str(GND_ID_PROP) + ':' + gnd + ']'
     print 'query:', query
-    wikidata_author_id_response = process_http_query(query)
+    wikidata_author_id_response = common.process_http_query(query)
     print 'response content:', wikidata_author_id_response.content
     return wikidata_author_id_response
 
@@ -180,9 +194,34 @@ def retrieve_wikidata_author_data(wikidata_author_id):
     query_author = WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_author_id) + ']&' + \
                    PROPS_JSON + '=' + ", ".join(str(e) for e in properties)
     print 'query author:', query_author
-    author_response_json = process_http_query(query_author)
+    author_response_json = common.process_http_query(query_author)
     print 'author json data:', author_response_json
     return author_response_json
+
+
+# query Wikidata by wikidata ID for a conductor occupation, which is represented
+# by property 'Commons Category'
+# e.g. https://www.wikidata.org/wiki/Q158852 for conductor in browser
+#      https://wdq.wmflabs.org/api?q=items[158852]&props=373 in API
+def retrieve_wikidata_occupation(wikidata_occupation_id):
+
+    query_occupation = WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_occupation_id) + ']&' + \
+                   PROPS_JSON + '=' + str(COMMONS_CATEGORY_PROP)
+    print 'query occupation:', query_occupation
+    occupation_response_json = common.process_http_query(query_occupation)
+    print 'occupation json data:', occupation_response_json
+    return occupation_response_json
+
+
+def add_occupation(occupation_id, wikidata_author_id):
+
+    occupation_data_response = retrieve_wikidata_occupation(occupation_id)
+    wikidata_occupation_data_response_json = common.validate_response_json(occupation_data_response)
+    entry = build_wikidata_occupation_entry(wikidata_occupation_data_response_json, occupation_id, wikidata_author_id)
+    with open(CATEGORIES_FILE, 'ab') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=wikidata_category_fieldnames, lineterminator='\n')
+        writer.writerow(entry)
+
 
 
 def extract_gnd_from_line(line):
@@ -267,6 +306,10 @@ def store_author_data(writer, gnd, gnd_cache, line):
 def map_records(inputfile, outputfile):
 
     print("Mapping", len(inputfile), "records in", outputfile)
+    os.remove(CATEGORIES_FILE)
+    with codecs.open(CATEGORIES_FILE, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=wikidata_category_fieldnames, lineterminator='\n')
+        writer.writeheader()
     with open(outputfile, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=wikidata_author_fieldnames, lineterminator='\n')
         writer.writeheader()
@@ -278,7 +321,7 @@ def map_records(inputfile, outputfile):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
-                    description="Mapping identifiers and data for dataset authors.")
+                    description="Mapping identifiers and data for dataset authors. Wikidata query.")
     parser.add_argument('inputfile', type=str, nargs='+',
                     help="Input file to be processed")
     parser.add_argument('-o', '--outputfile', type=str, nargs='?',
