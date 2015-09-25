@@ -71,6 +71,7 @@ def validate_response_json(response):
 
 def validate_json(data):
 
+    json_data = None
     try:
         #print 'response.content', response.content
         #print 'tmp response.content', response.content.replace('[]','"None":""')
@@ -78,6 +79,8 @@ def validate_json(data):
         json_data = json.loads(tmp)
     except JSONDecodeError as jde:
         print 'JSONDecodeError. Response author data:', data, jde
+    except UnboundLocalError as ule:
+        print 'UnboundLocalError. Response author data:', data, ule
     except:
         print 'Response json:', data
         print 'Unexpected error:', sys.exc_info()[0]

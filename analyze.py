@@ -28,7 +28,7 @@ import enrich
 import summarize
 import common
 
-import map
+import wikidata_helper
 
 import time
 
@@ -92,8 +92,9 @@ def analyze(inputdir, dirnames):
 #    dbpedia_helper.analyze_titles_by_dbpedia(query_list)
     '''
 
+
     # map entities employing Wikidata using GND number
-    map.map_records(
+    wikidata_helper.map_records(
         inputdir + '/' + SUMMARY_AUTHORS_NEW_FILE
         , inputdir + '/' + MAPPED_AUTHORS_FILE
     )
