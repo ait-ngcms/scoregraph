@@ -15,11 +15,21 @@ import urllib
 import common
 import glob
 
+import csv
+import codecs
+
 
 COMPOSITIONS = "compositions"
 FREEBASE_COMPOSITIONS_DIR = 'data/freebase_compositions_dir'
 FREEBASE_ID_PREFIX = '/m/'
 SLASH = '/'
+SUMMARY_COMPOSITIONS_FILE = 'data/summary_compositions.csv'
+
+
+composition_fieldnames = [
+    'freebase_author_id'
+    , 'composition_count'
+]
 
 
 def retrieve_compositions(author_id):
@@ -62,6 +72,33 @@ def find_freebase_items(query):
     url = service_url + '?' + urllib.urlencode(params)
     response = json.loads(urllib.urlopen(url).read())
     return response
+
+
+def summarize_categories():
+
+    with codecs.open(SUMMARY_COMPOSITIONS_FILE, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=composition_fieldnames, lineterminator='\n')
+        writer.writeheader()
+
+        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + '*'):
+            print inputfile
+            compositions_content_json = common.read_json_file(inputfile)
+            #compositions_content_json = json.loads(compositions_content)
+            composition_list = compositions_content_json['result'][0]['compositions']
+            entry = build_composition_entry(inputfile.split('\\')[-1], len(composition_list))
+            writer.writerow(entry)
+
+
+def build_composition_entry(
+        freebase_author_id, composition_count):
+
+    values = [
+        freebase_author_id
+        , composition_count
+    ]
+
+    return dict(zip(composition_fieldnames, values))
+
 
 
 # Command line parsing

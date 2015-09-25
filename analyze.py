@@ -29,6 +29,8 @@ import summarize
 import common
 
 import wikidata_helper
+import mediawiki_helper
+import freebase_helper
 
 import time
 
@@ -93,12 +95,23 @@ def analyze(inputdir, dirnames):
     '''
 
 
+    '''
     # map entities employing Wikidata using GND number
     wikidata_helper.map_records(
         inputdir + '/' + SUMMARY_AUTHORS_NEW_FILE
         , inputdir + '/' + MAPPED_AUTHORS_FILE
     )
+    '''
 
+    '''
+    # map entities employing MediaWiki API using GND number
+    mediawiki_helper.map_records(
+        inputdir + '/' + SUMMARY_AUTHORS_NEW_FILE
+        , inputdir + '/' + MAPPED_AUTHORS_FILE
+    )
+    '''
+
+    freebase_helper.summarize_categories()
     print '+++ Analyzing completed +++'
 
 

@@ -8,6 +8,7 @@ import os
 import codecs
 from simplejson import JSONDecodeError
 import sys
+import requests
 
 
 def progress(progress=0):
@@ -101,3 +102,13 @@ def validate_json_str(data):
         print 'Unexpected error:', sys.exc_info()[0]
     print 'json_data_str:', json_data_str
     return json_data_str
+
+
+def process_http_query(query):
+
+    r = requests.get(query)
+    if(r.status_code != 200):
+        print('Request error:', r.url)
+    return r
+
+
