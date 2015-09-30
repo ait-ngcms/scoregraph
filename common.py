@@ -112,3 +112,93 @@ def process_http_query(query):
     return r
 
 
+def find_longest_substring(string1, string2):
+    """ returns the longest common substring from the beginning of string1 and string2 """
+    def _iter():
+        for a, b in zip(string1, string2):
+            if a == b:
+                yield a
+            else:
+                return
+
+    return ''.join(_iter())
+
+
+def longest_substring_finder(string1, string2):
+
+    answer = ""
+    len1, len2 = len(string1), len(string2)
+    #for i in range(len1):
+    #    match = ""
+    #    for j in range(len2):
+    #       if (i + j < len1 and string1[i + j] == string2[j]):
+    #            match += string2[j]
+    #        else:
+    #            if (len(match) > len(answer)): answer = match
+    #            match = ""
+    match = ""
+    i = 0
+    for j in range(len2):
+        if (i + j < len1 and string1[i + j] == string2[j]):
+            match += string2[j]
+#        else:
+#            if (len(match) > len(answer)): answer = match
+#            match = ""
+#    return answer
+    return match
+
+
+def find_longest_substring_from_list(list):
+
+    parent = ''
+    if len(list) > 0:
+        parent = list[0]
+    for substring in list:
+#        parent = longest_substring_finder(parent,substring)
+        parent = find_common_substring(parent,substring)
+#        parent = find_longest_substring(parent,substring)
+    return parent
+
+
+def long_substr(data):
+    substr = ''
+    if len(data) > 1 and len(data[0]) > 0:
+        for i in range(len(data[0])):
+            for j in range(len(data[0])-i+1):
+                if j > len(substr) and all(data[0][i:i+j] in x for x in data):
+                    substr = data[0][i:i+j]
+    return substr
+
+
+def find_common_substring(str1,str2):
+
+    res = ''
+    if len(str1) > 0 and len(str2) > 0:
+        for i in range(len(str2)):
+            if (i < len(str1) and i < len(str2) and str1[i] == str2[i]):
+                res += str1[i]
+            else:
+                break
+    res = check_parent_at_least_a_word(str1, str2, res)
+    return res
+
+
+def check_parent_at_least_a_word(substr, substr2, parent):
+
+    # check whether resulting string is at least one word
+    if len(parent) > 0:
+        if len(parent) < get_word_len(substr) or len(parent) < get_word_len(substr2):
+            parent = ''
+    return parent
+
+
+def get_word_len(str):
+
+    res = 0
+    # check whether given string is a word and return word length
+    if str != '':
+        if ' ' in str:
+            res = str.index(" ")
+        else:
+            res = len(str)
+    return res

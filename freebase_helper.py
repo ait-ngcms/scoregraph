@@ -24,11 +24,20 @@ FREEBASE_COMPOSITIONS_DIR = 'data/freebase_compositions_dir'
 FREEBASE_ID_PREFIX = '/m/'
 SLASH = '/'
 SUMMARY_COMPOSITIONS_FILE = 'data/summary_compositions.csv'
+AUTHOR_COMPOSITIONS_FILE = 'data/author_compositions.csv'
 
 
 composition_fieldnames = [
     'freebase_author_id'
     , 'composition_count'
+]
+
+
+author_composition_fieldnames = [
+    'author'
+    , 'composition'
+    , 'parent'
+    , 'main'
 ]
 
 
@@ -89,6 +98,59 @@ def summarize_categories():
             writer.writerow(entry)
 
 
+def get_composition_string_list_from_json_list(composition_json_list):
+
+    composition_list = []
+    for composition_json in composition_json_list:
+        if composition_json['name'] != None:
+            composition_str = common.toByteStr(composition_json['name']).lower()
+            if composition_str != None:
+                composition_list.append(composition_str)
+    return sorted(composition_list) #.sort()
+
+
+def analyze_categories():
+
+    with codecs.open(AUTHOR_COMPOSITIONS_FILE, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=author_composition_fieldnames, lineterminator='\n')
+        writer.writeheader()
+
+        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + '*'):
+            print inputfile
+            compositions_content_json = common.read_json_file(inputfile)
+            name = compositions_content_json['result'][0]['name']
+            composition_json_list = compositions_content_json['result'][0]['compositions']
+            composition_list = get_composition_string_list_from_json_list(composition_json_list)
+
+            #parent = common.find_longest_substring_from_list(composition_list)
+            if len(composition_list) > 0:
+                parent = assign_parent(composition_list[0])
+
+                for index, composition in enumerate(composition_list):
+                    main = composition
+                    #if parent:
+                    #    main = ''
+                    if parent not in composition:
+                        parent = assign_parent(composition)
+                    if index + 1 < len(composition_list):
+                        parent_new = common.find_common_substring(parent,composition_list[index+1])
+                        #parent_new = common.check_parent_at_least_a_word(parent, parent_new)
+                        if parent_new != '':
+                            parent = parent_new
+                    entry = build_author_composition_entry(common.toByteStr(name), composition, parent, main)
+                    writer.writerow(entry)
+
+
+def assign_parent(value):
+
+    parent = value
+    if ',' in parent:
+        posComma = parent.index(',')
+        parent = parent[:posComma]
+    #parent = common.check_parent_at_least_a_word(parent, parent_new)
+    return parent
+
+
 def build_composition_entry(
         freebase_author_id, composition_count):
 
@@ -98,6 +160,19 @@ def build_composition_entry(
     ]
 
     return dict(zip(composition_fieldnames, values))
+
+
+def build_author_composition_entry(
+        author, composition, parent, main):
+
+    values = [
+        author
+        , composition
+        , parent
+        , main
+    ]
+
+    return dict(zip(author_composition_fieldnames, values))
 
 
 

@@ -111,7 +111,8 @@ def analyze(inputdir, dirnames):
     )
     '''
 
-    freebase_helper.summarize_categories()
+#    freebase_helper.summarize_categories()
+    freebase_helper.analyze_categories()
     print '+++ Analyzing completed +++'
 
 
