@@ -122,20 +122,26 @@ def analyze_categories():
             composition_json_list = compositions_content_json['result'][0]['compositions']
             composition_list = get_composition_string_list_from_json_list(composition_json_list)
 
-            #parent = common.find_longest_substring_from_list(composition_list)
             if len(composition_list) > 0:
-                parent = assign_parent(composition_list[0])
+#                parent = assign_parent(composition_list[0])
 
+                parent = ''
                 for index, composition in enumerate(composition_list):
                     main = composition
-                    #if parent:
-                    #    main = ''
-                    if parent not in composition:
-                        parent = assign_parent(composition)
-                    if index + 1 < len(composition_list):
-                        parent_new = common.find_common_substring(parent,composition_list[index+1])
-                        #parent_new = common.check_parent_at_least_a_word(parent, parent_new)
+                    if index == 0:
+                        parent = assign_parent(composition_list[0])
+                    else:
+                        if parent not in composition:
+                            parent = assign_parent(composition)
+                        #if index + 1 < len(composition_list):
+                        parent_new = common.find_common_substring(parent,composition_list[index-1])
+                        # parent ending must be either ' ' or ','
                         if parent_new != '':
+                            print 'parent:', parent, 'parent_new:', parent_new, 'composition:', composition
+                            if (len(parent_new) <= len(composition)
+                                and composition[len(parent_new)-1] != ' ' \
+                                and composition[len(parent_new)-1] != ','):
+                                parent_new = composition
                             parent = parent_new
                     entry = build_author_composition_entry(common.toByteStr(name), composition, parent, main)
                     writer.writerow(entry)
