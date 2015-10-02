@@ -112,7 +112,8 @@ def analyze(inputdir, dirnames):
     '''
 
 #    freebase_helper.summarize_categories()
-    freebase_helper.analyze_categories()
+#    freebase_helper.analyze_categories()
+    freebase_helper.aggregate_compositions_data()
     print '+++ Analyzing completed +++'
 
 

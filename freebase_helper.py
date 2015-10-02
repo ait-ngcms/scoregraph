@@ -21,10 +21,12 @@ import codecs
 
 COMPOSITIONS = "compositions"
 FREEBASE_COMPOSITIONS_DIR = 'data/freebase_compositions_dir'
+FREEBASE_COMPOSITIONS_DATA_DIR = 'data/freebase_compositions_data_dir'
 FREEBASE_ID_PREFIX = '/m/'
 SLASH = '/'
 SUMMARY_COMPOSITIONS_FILE = 'data/summary_compositions.csv'
 AUTHOR_COMPOSITIONS_FILE = 'data/author_compositions.csv'
+COMPOSITIONS_DATA_FILE = 'data/compositions_data.csv'
 
 
 composition_fieldnames = [
@@ -38,6 +40,13 @@ author_composition_fieldnames = [
     , 'composition'
     , 'parent'
     , 'main'
+]
+
+
+composition_data_fieldnames = [
+    'id'
+    , 'mid'
+    , 'name'
 ]
 
 
@@ -59,13 +68,43 @@ def retrieve_compositions(author_id):
             print 'incorrect Freebase key:', author_id, ke
 
 
+def retrieve_compositions_data(composition_id):
+
+    if composition_id:
+        query = [{'id': composition_id,
+                  'mid': None,
+                  'name': None,
+                  "type": [{}],
+                  "i18n:name": [{}],
+                  "key": [{}]
+             }]
+        response = find_freebase_items(query)
+        try:
+            for composition in response['result']:
+                print composition['name']
+                store_compositions_data(composition['mid'], response)
+        except KeyError as ke:
+            print 'incorrect Freebase key:', composition_id, ke
+            response = None
+    return response
+
+
 def store_compositions(author_id, response):
 
-    filename = str(author_id).replace(FREEBASE_ID_PREFIX,'') #('/','%2F')
+    filename = str(author_id).replace(FREEBASE_ID_PREFIX,'')
     inputfile = glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + filename)
     if not inputfile:
         print 'composition not exists for author:', author_id
         common.write_json_file(FREEBASE_COMPOSITIONS_DIR, filename, response)
+
+
+def store_compositions_data(composition_id, response):
+
+    filename = str(composition_id).replace(FREEBASE_ID_PREFIX,'')
+    inputfile = glob.glob(FREEBASE_COMPOSITIONS_DATA_DIR + SLASH + filename)
+    if not inputfile:
+        print 'composition not exists for ID:', composition_id
+        common.write_json_file(FREEBASE_COMPOSITIONS_DATA_DIR, filename, response)
 
 
 # Main query routine
@@ -106,7 +145,18 @@ def get_composition_string_list_from_json_list(composition_json_list):
             composition_str = common.toByteStr(composition_json['name']).lower()
             if composition_str != None:
                 composition_list.append(composition_str)
-    return sorted(composition_list) #.sort()
+    return sorted(composition_list)
+
+
+def get_composition_id_list_from_json_list(composition_json_list):
+
+    composition_list = []
+    for composition_json in composition_json_list:
+        if composition_json['id'] != None:
+            composition_str = common.toByteStr(composition_json['id']).lower()
+            if composition_str != None:
+                composition_list.append(composition_str)
+    return sorted(composition_list)
 
 
 def analyze_categories():
@@ -179,6 +229,43 @@ def build_author_composition_entry(
     ]
 
     return dict(zip(author_composition_fieldnames, values))
+
+
+def build_composition_data_entry(
+        id, mid, name):
+
+    values = [
+        id
+        , mid
+        , name
+    ]
+
+    return dict(zip(composition_data_fieldnames, values))
+
+
+def aggregate_compositions_data():
+
+    with codecs.open(COMPOSITIONS_DATA_FILE, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=composition_data_fieldnames, lineterminator='\n')
+        writer.writeheader()
+
+        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + '*'):
+            print inputfile
+            compositions_content_json = common.read_json_file(inputfile)
+            composition_json_list = compositions_content_json['result'][0]['compositions']
+            composition_list = get_composition_id_list_from_json_list(composition_json_list)
+
+            if len(composition_list) > 0:
+                for index, composition_id in enumerate(composition_list):
+                    composition_data = retrieve_compositions_data(composition_id)
+                    if composition_data:
+                        try:
+                            mid = composition_data['result'][0]['mid']
+                            name = composition_data['result'][0]['name']
+                            entry = build_composition_data_entry(composition_id, mid, common.toByteStr(name))
+                            writer.writerow(entry)
+                        except:
+                            print 'Composition values mid and/or name is empty.'
 
 
 
