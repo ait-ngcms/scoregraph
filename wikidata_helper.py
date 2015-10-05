@@ -22,6 +22,8 @@ import freebase_helper
 
 import os
 
+import summarize
+
 
 ONB_COL = 0
 NAME_COL = 1
@@ -37,6 +39,7 @@ PROPS_JSON = 'props'
 VALUE_POS_IN_WIKIDATA_PROP_LIST = 2
 WIKIDATA_AUTHOR_DIR = 'data/wikidata_author_dir'
 WIKIDATA_AUTHOR_DATA_DIR = 'data/wikidata_author_data_dir'
+WIKIDATA_COMPOSITION_DATA_DIR = 'data/wikidata_composition_data_dir'
 CATEGORIES_FILE = 'data/categories.csv'
 
 
@@ -176,7 +179,7 @@ def build_wikidata_occupation_entry(
 
 
 # query Wikidata by GND ID, where GND Identifier is a property P227
-# e.g. https://wdq.wmflabs.org/api?q=string[227:118576291] for Gustav Mahler
+# e.g. https://wdq.wmflabs.org/api?q=string[227:118576291] for 'Gustav Mahler'
 def retrieve_wikidata_author_id(gnd):
 
     query = WIKIDATA_API_URL + 'string[' + str(GND_ID_PROP) + ':' + gnd + ']'
@@ -184,6 +187,51 @@ def retrieve_wikidata_author_id(gnd):
     wikidata_author_id_response = common.process_http_query(query)
     print 'response content:', wikidata_author_id_response.content
     return wikidata_author_id_response
+
+
+# query Wikidata by Freebase ID, where Freebase Identifier is a property P646
+# e.g. https://wdq.wmflabs.org/api?q=string[646:/m/02pbjrj] for 'Die Dollarprinzessin'
+def retrieve_wikidata_composition_by_freebase_id(freebase_id):
+
+    query = WIKIDATA_API_URL + 'string[' + str(FREEBASE_ID_PROP) + ':' + freebase_id + ']'
+    print 'query wikidata composition:', query
+    wikidata_composition_response = common.process_http_query(query)
+    print 'response wikidata composition content:', wikidata_composition_response.content
+    return wikidata_composition_response
+
+
+def retrieve_wikidata_compositions_by_freebase_id(inputfile):
+
+    summary = summarize.read_csv_summary(inputfile)
+    for row in summary[1:]: # ignore first row, which is a header
+        FREEBASE_ID_COL = 1
+        print row[FREEBASE_ID_COL]
+        wikidata_composition_response = retrieve_wikidata_composition_by_freebase_id(row[FREEBASE_ID_COL])
+        print wikidata_composition_response
+        try:
+            wikidata_composition_response_json = json.loads(wikidata_composition_response.content)
+            items = wikidata_composition_response_json[ITEMS_JSON]
+            if len(items) > 0:
+                wikidata_composition_id = items[0]
+                print 'wikidata_composition_id:', wikidata_composition_id
+                inputfile = glob.glob(WIKIDATA_COMPOSITION_DATA_DIR + SLASH + str(wikidata_composition_id))
+                if not inputfile:
+                    print 'composition data not exists for composition:', wikidata_composition_id
+                    composition_response_json = retrieve_wikidata_composition_data(wikidata_composition_id)
+                    print 'composition json:', composition_response_json
+                    store_wikidata_composition_data(wikidata_composition_id, composition_response_json.content)
+        except KeyError as ke:
+            print 'no composition items found:', row[FREEBASE_ID_COL], ke
+
+
+def retrieve_wikidata_composition_data(wikidata_composition_id):
+
+    query_composition = WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_composition_id) + ']&' + \
+                   PROPS_JSON + '=*'
+    print 'query composition:', query_composition
+    composition_response_json = common.process_http_query(query_composition)
+    print 'composition json data:', composition_response_json
+    return composition_response_json
 
 
 # query Wikidata by wikidata ID for an author
@@ -264,6 +312,12 @@ def store_wikidata_author_id(line, author_id, gnd, response):
 def store_wikidata_author_data(author_id, response):
 
     common.write_json_file(WIKIDATA_AUTHOR_DATA_DIR, str(author_id), response)
+
+
+# store Wikidata composition data response in format {wikidata-id}.json
+def store_wikidata_composition_data(composition_id, response):
+
+    common.write_json_file(WIKIDATA_COMPOSITION_DATA_DIR, str(composition_id), response)
 
 
 def store_author_data_by_gnd(inputfile, writer):
