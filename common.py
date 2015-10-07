@@ -9,6 +9,7 @@ import codecs
 from simplejson import JSONDecodeError
 import sys
 import requests
+import glob
 
 
 def progress(progress=0):
@@ -110,6 +111,18 @@ def process_http_query(query):
     if(r.status_code != 200):
         print('Request error:', r.url)
     return r
+
+
+def is_stored_as_json_file(path):
+
+    response_json = None
+    inputfile = glob.glob(path)
+    if(inputfile):
+        print 'exists:', inputfile
+        #response_content = read_json_file(inputfile[0])
+        #response_json = json.loads(response_content)
+        response_json = read_json_file(inputfile[0])
+    return response_json
 
 
 def find_longest_substring(string1, string2):

@@ -16,7 +16,7 @@ from simplejson import JSONDecodeError
 import json
 
 import common
-import glob
+#import glob
 
 import freebase_helper
 
@@ -324,14 +324,9 @@ def load_properties():
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=wikidata_property_fieldnames, lineterminator='\n')
         writer.writeheader()
         for id in range(MAX_PROP_ID)[1:]:
-            wikidata_response_json = None
+            wikidata_response_json = common.is_stored_as_json_file(WIKIDATA_PROPERTY_DIR + SLASH + str(id))
             store = True
-            inputfile = glob.glob(WIKIDATA_PROPERTY_DIR + SLASH + str(id))
-            if(inputfile):
-                print 'exists:', inputfile, 'for property:', id
-                wikidata_response_content = common.read_json_file(inputfile[0])
-                wikidata_response_json = json.loads(wikidata_response_content)
-            else:
+            if(wikidata_response_json == None):
                 print 'file not exists for property:', id
                 wikidata_response = retrieve_wikidata_property(id)
                 try:
@@ -361,19 +356,22 @@ def extract_gnd_from_line(line):
 def get_wikidata_author_id_by_gnd(gnd, line):
 
     row = line.split(";")
-    inputfile = glob.glob(WIKIDATA_AUTHOR_DIR + SLASH + row[ONB_COL] + UNDERSCORE + gnd + '*')
-    if(inputfile):
-        print 'exists:', inputfile, 'for ONB:', row[ONB_COL]
-        wikidata_author_id_response_content = common.read_json_file(inputfile[0])
-        wikidata_author_id_response_json = json.loads(wikidata_author_id_response_content)
-    else:
+    wikidata_author_id_response_json = common.is_stored_as_json_file(WIKIDATA_AUTHOR_DIR + SLASH + row[ONB_COL] + UNDERSCORE + gnd + '*')
+    if(wikidata_author_id_response_json == None):
+    #inputfile = glob.glob(WIKIDATA_AUTHOR_DIR + SLASH + row[ONB_COL] + UNDERSCORE + gnd + '*')
+    #if(inputfile):
+    #    print 'exists:', inputfile, 'for ONB:', row[ONB_COL]
+    #    wikidata_author_id_response_content = common.read_json_file(inputfile[0])
+    #    wikidata_author_id_response_json = json.loads(wikidata_author_id_response_content)
+    #else:
         print 'onb_wikidata not exists for ONB:', row[ONB_COL]
         wikidata_author_id_response = retrieve_wikidata_author_id(gnd)
         wikidata_author_id_response_json = wikidata_author_id_response.json()
-        wikidata_author_id_response_content = wikidata_author_id_response.content
+        #wikidata_author_id_response_content = wikidata_author_id_response.content
     wikidata_author_id = extract_wikidata_author_id(wikidata_author_id_response_json)
     print 'wikidata_author_id', wikidata_author_id
-    store_wikidata_author_id(line, wikidata_author_id, gnd, wikidata_author_id_response_content)
+    store_wikidata_author_id(line, wikidata_author_id, gnd, wikidata_author_id_response_json)
+#    store_wikidata_author_id(line, wikidata_author_id, gnd, wikidata_author_id_response_content)
     return wikidata_author_id
 
 
@@ -415,19 +413,22 @@ def store_author_data(writer, gnd, gnd_cache, line):
         wikidata_author_id = get_wikidata_author_id_by_gnd(gnd, line)
         if(wikidata_author_id and wikidata_author_id not in gnd_cache):
             gnd_cache.append(wikidata_author_id)
-            inputfile = glob.glob(WIKIDATA_AUTHOR_DATA_DIR + SLASH + str(wikidata_author_id) + '*')
-            if(inputfile):
-                print 'exists:', inputfile, 'for wikidata author ID:', wikidata_author_id
-                wikidata_author_data_response_content = common.read_json_file(inputfile[0])
-                #wikidata_author_data_response_content = common.validate_json_str(wikidata_author_data_response_content_tmp)
-                wikidata_author_data_response_json = json.loads(wikidata_author_data_response_content)
-            else:
+            wikidata_author_data_response_json = common.is_stored_as_json_file(WIKIDATA_AUTHOR_DATA_DIR + SLASH + str(wikidata_author_id) + '*')
+            if(wikidata_author_data_response_json == None):
+            #inputfile = glob.glob(WIKIDATA_AUTHOR_DATA_DIR + SLASH + str(wikidata_author_id) + '*')
+            #if(inputfile):
+            #    print 'exists:', inputfile, 'for wikidata author ID:', wikidata_author_id
+            #    wikidata_author_data_response_content = common.read_json_file(inputfile[0])
+            #    #wikidata_author_data_response_content = common.validate_json_str(wikidata_author_data_response_content_tmp)
+            #    wikidata_author_data_response_json = json.loads(wikidata_author_data_response_content)
+            #else:
                 print 'wikidata not exists for wikidata author ID:', wikidata_author_id
                 author_data_response = retrieve_wikidata_author_data(wikidata_author_id)
                 #wikidata_author_data_response_json = common.validate_response_json(author_data_response)
                 wikidata_author_data_response_json = json.loads(author_data_response.content)
                 wikidata_author_data_response_content = author_data_response.content
-            store_wikidata_author_data(wikidata_author_id, wikidata_author_data_response_content)
+            store_wikidata_author_data(wikidata_author_id, wikidata_author_data_response_json)
+#            store_wikidata_author_data(wikidata_author_id, wikidata_author_data_response_content)
             property_dict = wikidata_author_data_response_json['entities']['Q'+str(wikidata_author_id)]['claims']
             entry = build_wikidata_author_entry(property_dict, line, wikidata_author_id)
             writer.writerow(entry)
@@ -438,7 +439,7 @@ def store_author_data(writer, gnd, gnd_cache, line):
 def map_records(inputfile, outputfile):
 
     print("Mapping", len(inputfile), "records in", outputfile)
-    os.remove(CATEGORIES_FILE)
+    #os.remove(CATEGORIES_FILE)
     with codecs.open(CATEGORIES_FILE, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=wikidata_category_fieldnames, lineterminator='\n')
         writer.writeheader()

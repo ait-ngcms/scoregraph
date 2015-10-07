@@ -16,7 +16,7 @@ from simplejson import JSONDecodeError
 import json
 
 import common
-import glob
+#import glob
 
 import freebase_helper
 
@@ -214,24 +214,28 @@ def retrieve_wikidata_compositions_by_freebase_id(inputfile):
             if len(items) > 0:
                 wikidata_composition_id = items[0]
                 print 'wikidata_composition_id:', wikidata_composition_id
-                inputfile = glob.glob(WIKIDATA_COMPOSITION_DATA_DIR + SLASH + str(wikidata_composition_id))
-                if not inputfile:
+                composition_response_json = common.is_stored_as_json_file(
+                    WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_composition_id) + ']&' + PROPS_JSON + '=*')
+                if(composition_response_json == None):
+                #inputfile = glob.glob(WIKIDATA_COMPOSITION_DATA_DIR + SLASH + str(wikidata_composition_id))
+                #if not inputfile:
                     print 'composition data not exists for composition:', wikidata_composition_id
-                    composition_response_json = retrieve_wikidata_composition_data(wikidata_composition_id)
+                    #composition_response_json = retrieve_wikidata_composition_data(wikidata_composition_id)
                     print 'composition json:', composition_response_json
-                    store_wikidata_composition_data(wikidata_composition_id, composition_response_json.content)
+                    store_wikidata_composition_data(wikidata_composition_id, composition_response_json)
+#                    store_wikidata_composition_data(wikidata_composition_id, composition_response_json.content)
         except KeyError as ke:
             print 'no composition items found:', row[FREEBASE_ID_COL], ke
 
 
-def retrieve_wikidata_composition_data(wikidata_composition_id):
+#def retrieve_wikidata_composition_data(wikidata_composition_id):
 
-    query_composition = WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_composition_id) + ']&' + \
-                   PROPS_JSON + '=*'
-    print 'query composition:', query_composition
-    composition_response_json = common.process_http_query(query_composition)
-    print 'composition json data:', composition_response_json
-    return composition_response_json
+#    query_composition = WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_composition_id) + ']&' + \
+#                   PROPS_JSON + '=*'
+#    print 'query composition:', query_composition
+#    composition_response_json = common.process_http_query(query_composition)
+#    print 'composition json data:', composition_response_json
+#    return composition_response_json
 
 
 # query Wikidata by wikidata ID for an author
@@ -285,19 +289,23 @@ def extract_gnd_from_line(line):
 def get_wikidata_author_id_by_gnd(gnd, line):
 
     row = line.split(";")
-    inputfile = glob.glob(WIKIDATA_AUTHOR_DIR + SLASH + row[ONB_COL] + UNDERSCORE + gnd + '*')
-    if(inputfile):
-        print 'exists:', inputfile, 'for ONB:', row[ONB_COL]
-        wikidata_author_id_response_content = common.read_json_file(inputfile[0])
-        wikidata_author_id_response_json = json.loads(wikidata_author_id_response_content)
-    else:
+    wikidata_author_id_response_json = common.is_stored_as_json_file(
+        WIKIDATA_AUTHOR_DIR + SLASH + row[ONB_COL] + UNDERSCORE + gnd + '*')
+    if(wikidata_author_id_response_json == None):
+    #inputfile = glob.glob(WIKIDATA_AUTHOR_DIR + SLASH + row[ONB_COL] + UNDERSCORE + gnd + '*')
+    #if(inputfile):
+    #    print 'exists:', inputfile, 'for ONB:', row[ONB_COL]
+    #    wikidata_author_id_response_content = common.read_json_file(inputfile[0])
+    #    wikidata_author_id_response_json = json.loads(wikidata_author_id_response_content)
+    #else:
         print 'onb_wikidata not exists for ONB:', row[ONB_COL]
         wikidata_author_id_response = retrieve_wikidata_author_id(gnd)
         wikidata_author_id_response_json = wikidata_author_id_response.json()
-        wikidata_author_id_response_content = wikidata_author_id_response.content
+        #wikidata_author_id_response_content = wikidata_author_id_response.content
     wikidata_author_id = extract_wikidata_author_id(wikidata_author_id_response_json)
     print 'wikidata_author_id', wikidata_author_id
-    store_wikidata_author_id(line, wikidata_author_id, gnd, wikidata_author_id_response_content)
+    store_wikidata_author_id(line, wikidata_author_id, gnd, wikidata_author_id_response_json)
+#    store_wikidata_author_id(line, wikidata_author_id, gnd, wikidata_author_id_response_content)
     return wikidata_author_id
 
 
@@ -339,18 +347,22 @@ def store_author_data(writer, gnd, gnd_cache, line):
         wikidata_author_id = get_wikidata_author_id_by_gnd(gnd, line)
         if(wikidata_author_id and wikidata_author_id not in gnd_cache):
             gnd_cache.append(wikidata_author_id)
-            inputfile = glob.glob(WIKIDATA_AUTHOR_DATA_DIR + SLASH + str(wikidata_author_id) + '*')
-            if(inputfile):
-                print 'exists:', inputfile, 'for wikidata author ID:', wikidata_author_id
-                wikidata_author_data_response_content_tmp = common.read_json_file(inputfile[0])
-                wikidata_author_data_response_content = common.validate_json_str(wikidata_author_data_response_content_tmp)
-                wikidata_author_data_response_json = json.loads(wikidata_author_data_response_content)
-            else:
+            wikidata_author_data_response_json = common.is_stored_as_json_file(
+                WIKIDATA_AUTHOR_DATA_DIR + SLASH + str(wikidata_author_id) + '*')
+            if(wikidata_author_data_response_json == None):
+            #inputfile = glob.glob(WIKIDATA_AUTHOR_DATA_DIR + SLASH + str(wikidata_author_id) + '*')
+            #if(inputfile):
+            #    print 'exists:', inputfile, 'for wikidata author ID:', wikidata_author_id
+            #    wikidata_author_data_response_content_tmp = common.read_json_file(inputfile[0])
+            #    wikidata_author_data_response_content = common.validate_json_str(wikidata_author_data_response_content_tmp)
+            #    wikidata_author_data_response_json = json.loads(wikidata_author_data_response_content)
+            #else:
                 print 'wikidata not exists for wikidata author ID:', wikidata_author_id
                 author_data_response = retrieve_wikidata_author_data(wikidata_author_id)
                 wikidata_author_data_response_json = common.validate_response_json(author_data_response) #author_data_response.json()
-                wikidata_author_data_response_content = author_data_response.content
-            store_wikidata_author_data(wikidata_author_id, wikidata_author_data_response_content)
+            #    wikidata_author_data_response_content = author_data_response.content
+            store_wikidata_author_data(wikidata_author_id, wikidata_author_data_response_json)
+#            store_wikidata_author_data(wikidata_author_id, wikidata_author_data_response_content)
             entry = build_wikidata_author_entry(wikidata_author_data_response_json, line, wikidata_author_id)
             writer.writerow(entry)
 
@@ -360,7 +372,7 @@ def store_author_data(writer, gnd, gnd_cache, line):
 def map_records(inputfile, outputfile):
 
     print("Mapping", len(inputfile), "records in", outputfile)
-    os.remove(CATEGORIES_FILE)
+    #os.remove(CATEGORIES_FILE)
     with codecs.open(CATEGORIES_FILE, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=wikidata_category_fieldnames, lineterminator='\n')
         writer.writeheader()
