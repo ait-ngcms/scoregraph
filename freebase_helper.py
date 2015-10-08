@@ -27,6 +27,7 @@ SLASH = '/'
 SUMMARY_COMPOSITIONS_FILE = 'data/summary_compositions.csv'
 AUTHOR_COMPOSITIONS_FILE = 'data/author_compositions.csv'
 COMPOSITIONS_DATA_FILE = 'data/compositions_data.csv'
+JSON_EXT = '.json'
 
 
 composition_fieldnames = [
@@ -91,18 +92,22 @@ def retrieve_compositions_data(composition_id):
 
 def store_compositions(author_id, response):
 
-    filename = str(author_id).replace(FREEBASE_ID_PREFIX,'')
-    inputfile = glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + filename)
-    if not inputfile:
+    filename = str(author_id).replace(FREEBASE_ID_PREFIX,'') + JSON_EXT
+    response_json = common.is_stored_as_json_file(FREEBASE_COMPOSITIONS_DIR + SLASH + filename)
+    if(response_json == None):
+    #inputfile = glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + filename)
+    #if not inputfile:
         print 'composition not exists for author:', author_id
         common.write_json_file(FREEBASE_COMPOSITIONS_DIR, filename, response)
 
 
 def store_compositions_data(composition_id, response):
 
-    filename = str(composition_id).replace(FREEBASE_ID_PREFIX,'')
-    inputfile = glob.glob(FREEBASE_COMPOSITIONS_DATA_DIR + SLASH + filename)
-    if not inputfile:
+    filename = str(composition_id).replace(FREEBASE_ID_PREFIX,'') + JSON_EXT
+    response_json = common.is_stored_as_json_file(FREEBASE_COMPOSITIONS_DATA_DIR + SLASH + filename)
+    if(response_json == None):
+    #inputfile = glob.glob(FREEBASE_COMPOSITIONS_DATA_DIR + SLASH + filename)
+    #if not inputfile:
         print 'composition not exists for ID:', composition_id
         common.write_json_file(FREEBASE_COMPOSITIONS_DATA_DIR, filename, response)
 

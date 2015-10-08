@@ -103,18 +103,18 @@ def analyze(inputdir, dirnames):
     )
     '''
 
-
+    '''
     # map entities employing MediaWiki API using GND number
     mediawiki_helper.map_records(
         inputdir + '/' + SUMMARY_AUTHORS_NEW_FILE
         , inputdir + '/' + MAPPED_AUTHORS_FILE
     )
-
+    '''
 
 #    freebase_helper.summarize_categories()
 #    freebase_helper.analyze_categories()
 #    freebase_helper.aggregate_compositions_data()
-#    wikidata_helper.retrieve_wikidata_compositions_by_freebase_id(freebase_helper.COMPOSITIONS_DATA_FILE)
+    wikidata_helper.retrieve_wikidata_compositions_by_freebase_id(freebase_helper.COMPOSITIONS_DATA_FILE)
 #    mediawiki_helper.load_properties()
     print '+++ Analyzing completed +++'
 
