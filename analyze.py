@@ -10,6 +10,7 @@ Data to analyze is comprised in the folder 'data' that should have subdirectorie
 Statistics are generated in:
     summary_normalized.csv
     summary_enriched.csv
+    ...
 
 Invocation:
 $ python analyze.py data
@@ -31,6 +32,7 @@ import common
 import wikidata_helper
 import mediawiki_helper
 import freebase_helper
+import viaf_helper
 
 import time
 
@@ -39,6 +41,7 @@ SUMMARY_TITLES_FILE = 'summary_titles.csv'
 SUMMARY_AUTHORS_FILE = 'summary_authors.csv'
 SUMMARY_AUTHORS_NEW_FILE = 'summary_authors-new.csv'
 MAPPED_AUTHORS_FILE = 'mapped_authors.csv'
+VIAF_COMPOSITIONS_FILE = 'viaf_compositions.csv'
 
 
 def analyze(inputdir, dirnames):
@@ -46,9 +49,9 @@ def analyze(inputdir, dirnames):
     mode_raw = 'raw'
     mode_normalized = 'normalized'
     mode_enriched = 'enriched'
-    raw_path = inputdir + '/' + mode_raw
-    normalized_path = inputdir + '/' + mode_normalized
-    enriched_path = inputdir + '/' + mode_enriched
+    raw_path = inputdir + common.SLASH + mode_raw
+    normalized_path = inputdir + common.SLASH + mode_normalized
+    enriched_path = inputdir + common.SLASH + mode_enriched
 
     # clean up directories
     #common.cleanup_tmp_directories(raw_path)
@@ -60,13 +63,13 @@ def analyze(inputdir, dirnames):
     #os.remove(SUMMARY_AUTHORS_FILE)
 
     # correct IDs in CSV
-    #summarize.correct_authors(inputdir + '/' + SUMMARY_AUTHORS_FILE)
+    #summarize.correct_authors(inputdir + common.SLASH + SUMMARY_AUTHORS_FILE)
 
     '''
     # normalize entities
     if mode_raw in dirnames:
         raw_files = os.listdir(raw_path)
-        raw_files = [(raw_path + '/' + element) for element in raw_files]
+        raw_files = [(raw_path + common.SLASH + element) for element in raw_files]
         normalize.normalize_records(raw_files, normalized_path)
     else:
         print 'Error. ' +  mode_raw + ' folder is missing.'
@@ -74,17 +77,17 @@ def analyze(inputdir, dirnames):
     # enrich entities with Europeana data using GND number
     if mode_normalized in dirnames:
         normalized_files = os.listdir(normalized_path)
-        normalized_files = [(normalized_path + '/' + element) for element in normalized_files]
+        normalized_files = [(normalized_path + common.SLASH + element) for element in normalized_files]
         enrich.enrich_records(normalized_files, enriched_path)
 
         # summarize statistics
         if mode_enriched in dirnames:
             summarize.summarize_records(normalized_files, inputdir + '/summary_' + mode_normalized + '.csv')
             enriched_files = os.listdir(enriched_path)
-            enriched_files = [(enriched_path + '/' + element) for element in enriched_files]
+            enriched_files = [(enriched_path + common.SLASH + element) for element in enriched_files]
             summarize.summarize_records(enriched_files, inputdir + '/summary_' + mode_enriched + '.csv')
-            summarize.summarize_titles(normalized_files, inputdir + '/' + SUMMARY_TITLES_FILE)
-            summarize.summarize_authors(normalized_files, inputdir + '/' + SUMMARY_AUTHORS_FILE)
+            summarize.summarize_titles(normalized_files, inputdir + common.SLASH + SUMMARY_TITLES_FILE)
+            summarize.summarize_authors(normalized_files, inputdir + common.SLASH + SUMMARY_AUTHORS_FILE)
         else:
             print 'Error. ' + mode_enriched + ' folder is missing.'
     else:
@@ -98,23 +101,25 @@ def analyze(inputdir, dirnames):
     '''
     # map entities employing Wikidata using GND number
     wikidata_helper.map_records(
-        inputdir + '/' + SUMMARY_AUTHORS_NEW_FILE
-        , inputdir + '/' + MAPPED_AUTHORS_FILE
+        inputdir + common.SLASH + SUMMARY_AUTHORS_NEW_FILE
+        , inputdir + common.SLASH + MAPPED_AUTHORS_FILE
     )
     '''
 
     '''
     # map entities employing MediaWiki API using GND number
     mediawiki_helper.map_records(
-        inputdir + '/' + SUMMARY_AUTHORS_NEW_FILE
-        , inputdir + '/' + MAPPED_AUTHORS_FILE
+        inputdir + common.SLASH + SUMMARY_AUTHORS_NEW_FILE
+        , inputdir + common.SLASH + MAPPED_AUTHORS_FILE
     )
     '''
 
 #    freebase_helper.summarize_categories()
 #    freebase_helper.analyze_categories()
 #    freebase_helper.aggregate_compositions_data()
-    wikidata_helper.retrieve_wikidata_compositions_by_freebase_id(freebase_helper.COMPOSITIONS_DATA_FILE)
+#    wikidata_helper.retrieve_wikidata_compositions_by_freebase_id(freebase_helper.COMPOSITIONS_DATA_FILE)
+    viaf_helper.retrieve_authors_data_by_viaf_id(inputdir + common.SLASH + MAPPED_AUTHORS_FILE
+                                                 , inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
 #    mediawiki_helper.load_properties()
     print '+++ Analyzing completed +++'
 

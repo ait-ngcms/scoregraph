@@ -12,6 +12,13 @@ import requests
 import glob
 
 
+SLASH = '/'
+UNDERSCORE = '_'
+BLANK = ' '
+JSON_EXT = '.json'
+JSON_EXT = '.json'
+
+
 def progress(progress=0):
     progress = round(progress * 100)
     print("\n*** Progress: {0}% ***".format(progress))

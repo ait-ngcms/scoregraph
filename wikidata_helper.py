@@ -25,10 +25,7 @@ import summarize
 ONB_COL = 0
 NAME_COL = 1
 GND_COL = 2
-SLASH = '/'
-UNDERSCORE = '_'
-BLANK = ' '
-JSON_EXT = '.json'
+
 
 WIKIDATA_API_URL = 'https://wdq.wmflabs.org/api?q='
 ITEMS_JSON = 'items'
@@ -126,10 +123,10 @@ def build_wikidata_author_entry(
     row = line.split(";")
     genres = extract_property_value(author_response_json, GENRE_PROP)
     occupations = extract_property_value(author_response_json, OCCUPATION_PROP)
-    for occupation in occupations.split(BLANK):
+    for occupation in occupations.split(common.BLANK):
         add_occupation(occupation, wikidata_author_id)
     freebase = extract_property_value(author_response_json, FREEBASE_ID_PROP)
-    for id in freebase.split(BLANK):
+    for id in freebase.split(common.BLANK):
         freebase_helper.retrieve_compositions(id)
     viaf = extract_property_value(author_response_json, VIAF_ID_PROP)
     bnf = extract_property_value(author_response_json, BNF_ID_PROP)
@@ -274,7 +271,7 @@ def extract_gnd_from_line(line):
 
     try:
         row = line.split(";")
-        return row[GND_COL].split(SLASH)[-1]
+        return row[GND_COL].split(common.SLASH)[-1]
     except IndexError as ie:
         print 'No GND found!', ie
     return None
@@ -284,7 +281,7 @@ def get_wikidata_author_id_by_gnd(gnd, line):
 
     row = line.split(";")
     wikidata_author_id_response_json = common.is_stored_as_json_file(
-        WIKIDATA_AUTHOR_DIR + SLASH + row[ONB_COL] + UNDERSCORE + gnd + '*')
+        WIKIDATA_AUTHOR_DIR + common.SLASH + row[ONB_COL] + common.UNDERSCORE + gnd + '*')
     if(wikidata_author_id_response_json == None):
         print 'onb_wikidata not exists for ONB:', row[ONB_COL]
         wikidata_author_id_response = retrieve_wikidata_author_id(gnd)
@@ -299,19 +296,20 @@ def get_wikidata_author_id_by_gnd(gnd, line):
 def store_wikidata_author_id(line, author_id, gnd, response):
 
     row = line.split(";")
-    common.write_json_file(WIKIDATA_AUTHOR_DIR, str(row[ONB_COL]) + UNDERSCORE + gnd + UNDERSCORE + str(author_id) + JSON_EXT, response)
+    common.write_json_file(WIKIDATA_AUTHOR_DIR, str(row[ONB_COL]) + common.UNDERSCORE
+                           + gnd + common.UNDERSCORE + str(author_id) + common.JSON_EXT, response)
 
 
 # store Wikidata author data response in format {wikidata-id}.json
 def store_wikidata_author_data(author_id, response):
 
-    common.write_json_file(WIKIDATA_AUTHOR_DATA_DIR, str(author_id) + JSON_EXT, response)
+    common.write_json_file(WIKIDATA_AUTHOR_DATA_DIR, str(author_id) + common.JSON_EXT, response)
 
 
 # store Wikidata composition data response in format {wikidata-id}.json
 def store_wikidata_composition_data(composition_id, response):
 
-    common.write_json_file(WIKIDATA_COMPOSITION_DATA_DIR, str(composition_id) + JSON_EXT, response)
+    common.write_json_file(WIKIDATA_COMPOSITION_DATA_DIR, str(composition_id) + common.JSON_EXT, response)
 
 
 def store_author_data_by_gnd(inputfile, writer):
@@ -334,7 +332,7 @@ def store_author_data(writer, gnd, gnd_cache, line):
         if(wikidata_author_id and wikidata_author_id not in gnd_cache):
             gnd_cache.append(wikidata_author_id)
             wikidata_author_data_response_json = common.is_stored_as_json_file(
-                WIKIDATA_AUTHOR_DATA_DIR + SLASH + str(wikidata_author_id) + '*')
+                WIKIDATA_AUTHOR_DATA_DIR + common.SLASH + str(wikidata_author_id) + '*')
             if(wikidata_author_data_response_json == None):
                 print 'wikidata not exists for wikidata author ID:', wikidata_author_id
                 author_data_response = retrieve_wikidata_author_data(wikidata_author_id)

@@ -23,11 +23,9 @@ COMPOSITIONS = "compositions"
 FREEBASE_COMPOSITIONS_DIR = 'data/freebase_compositions_dir'
 FREEBASE_COMPOSITIONS_DATA_DIR = 'data/freebase_compositions_data_dir'
 FREEBASE_ID_PREFIX = '/m/'
-SLASH = '/'
 SUMMARY_COMPOSITIONS_FILE = 'data/summary_compositions.csv'
 AUTHOR_COMPOSITIONS_FILE = 'data/author_compositions.csv'
 COMPOSITIONS_DATA_FILE = 'data/compositions_data.csv'
-JSON_EXT = '.json'
 
 
 composition_fieldnames = [
@@ -92,8 +90,8 @@ def retrieve_compositions_data(composition_id):
 
 def store_compositions(author_id, response):
 
-    filename = str(author_id).replace(FREEBASE_ID_PREFIX,'') + JSON_EXT
-    response_json = common.is_stored_as_json_file(FREEBASE_COMPOSITIONS_DIR + SLASH + filename)
+    filename = str(author_id).replace(FREEBASE_ID_PREFIX,'') + common.JSON_EXT
+    response_json = common.is_stored_as_json_file(FREEBASE_COMPOSITIONS_DIR + common.SLASH + filename)
     if(response_json == None):
     #inputfile = glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + filename)
     #if not inputfile:
@@ -103,8 +101,8 @@ def store_compositions(author_id, response):
 
 def store_compositions_data(composition_id, response):
 
-    filename = str(composition_id).replace(FREEBASE_ID_PREFIX,'') + JSON_EXT
-    response_json = common.is_stored_as_json_file(FREEBASE_COMPOSITIONS_DATA_DIR + SLASH + filename)
+    filename = str(composition_id).replace(FREEBASE_ID_PREFIX,'') + common.JSON_EXT
+    response_json = common.is_stored_as_json_file(FREEBASE_COMPOSITIONS_DATA_DIR + common.SLASH + filename)
     if(response_json == None):
     #inputfile = glob.glob(FREEBASE_COMPOSITIONS_DATA_DIR + SLASH + filename)
     #if not inputfile:
@@ -133,7 +131,7 @@ def summarize_categories():
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=composition_fieldnames, lineterminator='\n')
         writer.writeheader()
 
-        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + '*'):
+        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + common.SLASH + '*'):
             print inputfile
             compositions_content_json = common.read_json_file(inputfile)
             #compositions_content_json = json.loads(compositions_content)
@@ -170,7 +168,7 @@ def analyze_categories():
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=author_composition_fieldnames, lineterminator='\n')
         writer.writeheader()
 
-        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + '*'):
+        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + common.SLASH + '*'):
             print inputfile
             compositions_content_json = common.read_json_file(inputfile)
             name = compositions_content_json['result'][0]['name']
@@ -254,7 +252,7 @@ def aggregate_compositions_data():
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=composition_data_fieldnames, lineterminator='\n')
         writer.writeheader()
 
-        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + SLASH + '*'):
+        for inputfile in glob.glob(FREEBASE_COMPOSITIONS_DIR + common.SLASH + '*'):
             print inputfile
             compositions_content_json = common.read_json_file(inputfile)
             composition_json_list = compositions_content_json['result'][0]['compositions']
