@@ -125,7 +125,7 @@ def find_freebase_items(query):
     return response
 
 
-def summarize_categories():
+def summarize_compositions():
 
     with codecs.open(SUMMARY_COMPOSITIONS_FILE, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=composition_fieldnames, lineterminator='\n')
@@ -162,7 +162,7 @@ def get_composition_id_list_from_json_list(composition_json_list):
     return sorted(composition_list)
 
 
-def analyze_categories():
+def analyze_compositions():
 
     with codecs.open(AUTHOR_COMPOSITIONS_FILE, 'w') as csvfile:
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=author_composition_fieldnames, lineterminator='\n')
@@ -184,18 +184,20 @@ def analyze_categories():
                     if index == 0:
                         parent = assign_parent(composition_list[0])
                     else:
-                        if parent not in composition:
+                        #if parent not in composition:
+                        if not composition.startswith(parent):
                             parent = assign_parent(composition)
-                        #if index + 1 < len(composition_list):
-                        parent_new = common.find_common_substring(parent,composition_list[index-1])
-                        # parent ending must be either ' ' or ','
-                        if parent_new != '':
-                            print 'parent:', parent, 'parent_new:', parent_new, 'composition:', composition
-                            if (len(parent_new) <= len(composition)
-                                and composition[len(parent_new)-1] != ' ' \
-                                and composition[len(parent_new)-1] != ','):
-                                parent_new = composition
-                            parent = parent_new
+                        else:
+                            parent_new = common.find_common_substring(parent,composition_list[index-1])
+                            #parent_new = common.find_common_parent(parent,composition_list[index-1])
+                            # parent ending must be either ' ' or ','
+                            if parent_new != '':
+                                print 'parent:', parent, 'parent_new:', parent_new, 'composition:', composition
+                                if (len(parent_new) <= len(composition)
+                                    and composition[len(parent_new)-1] != ' ' \
+                                    and composition[len(parent_new)-1] != ','):
+                                    parent_new = composition
+                                parent = parent_new
                     entry = build_author_composition_entry(common.toByteStr(name), composition, parent, main)
                     writer.writerow(entry)
 
