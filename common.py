@@ -16,10 +16,11 @@ SLASH = '/'
 UNDERSCORE = '_'
 BLANK = ' '
 JSON_EXT = '.json'
-JSON_EXT = '.json'
+XML_EXT = '.xml'
 
 
 def progress(progress=0):
+
     progress = round(progress * 100)
     print("\n*** Progress: {0}% ***".format(progress))
 
@@ -27,6 +28,7 @@ def progress(progress=0):
 # I/O handling
 
 def read_records(inputfiles):
+
     for filename in inputfiles:
         with codecs.open(filename, 'r', 'utf-8') as in_file:
             data = in_file.read()
@@ -34,6 +36,7 @@ def read_records(inputfiles):
 
 
 def ensure_directory(outputdir):
+
     """Make sure that output directory exists"""
     if not os.path.exists(outputdir):
         print("Creating directory", outputdir)
@@ -41,10 +44,18 @@ def ensure_directory(outputdir):
 
 
 def write_json_file(outputdir, filename, data):
+
     ensure_directory(outputdir)
-    with codecs.open(outputdir + "/" + filename, "w", 'utf-8') as out_file:
+    with codecs.open(outputdir + SLASH + filename, "w", 'utf-8') as out_file:
             json.dump(data, out_file, sort_keys=True, indent=4,
                       ensure_ascii=False, encoding='utf-8')
+
+def write_xml_file(outputdir, filename, data):
+
+    ensure_directory(outputdir)
+    file = open(outputdir + SLASH + filename + XML_EXT, "w")
+    file.write(data)
+    file.close()
 
 
 def read_json_file(inputfile):
@@ -57,6 +68,7 @@ def read_json_file(inputfile):
 # this method cleans up a temporary directory
 # it is employed before new analysis starts
 def cleanup_tmp_directories(folder):
+
     for the_file in os.listdir(folder):
         file_path = os.path.join(folder, the_file)
         try:
@@ -67,6 +79,7 @@ def cleanup_tmp_directories(folder):
 
 
 def toByteStr(text):
+
     #print 'toByteStr:', text
     res = ''
     if text and text != 'NoneType':

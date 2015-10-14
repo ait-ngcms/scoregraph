@@ -19,17 +19,18 @@ import xml.etree.ElementTree as ET
 
 
 VIAF_API_URL = 'http://www.viaf.org/viaf/'
-
+VIAF_AUTHOR_DIR = 'data/viaf_author_dir'
 
 viaf_compositions_fieldnames = [
     'author id'
+    , 'author name'
     , 'work id'
     , 'title'
 ]
 
 
 # e.g. http://www.viaf.org/viaf/61732497/viaf.xml
-def retrieve_viaf_compositions_by_author_id(viaf_id, outputfile):
+def retrieve_viaf_compositions_by_author_id(author_name, viaf_id, outputfile):
 
     query_author = VIAF_API_URL + str(viaf_id) + '/viaf.xml'
     print 'query author:', query_author
@@ -37,11 +38,12 @@ def retrieve_viaf_compositions_by_author_id(viaf_id, outputfile):
     print 'viaf author:', author_response
     if author_response.content:
         root = ET.fromstring(author_response.content)
-        parse_response(viaf_id, root, outputfile)
+        parse_response(author_name, viaf_id, root, outputfile)
+        common.write_xml_file(VIAF_AUTHOR_DIR, str(viaf_id), author_response.content)
     return author_response
 
 
-def parse_response(viaf_id, root, outputfile):
+def parse_response(author_name, viaf_id, root, outputfile):
 
     for child in root:
         #print child
@@ -52,15 +54,16 @@ def parse_response(viaf_id, root, outputfile):
                     if 'title' in elem.tag:
                         print 'viaf author id:', viaf_id, 'composition id:', work.attrib.get('id'), \
                             'title: ', elem.text
-                        entry = build_viaf_composition_entry(viaf_id, work.attrib.get('id'), elem.text)
+                        entry = build_viaf_composition_entry(viaf_id, author_name, work.attrib.get('id'), elem.text)
                         write_composition_in_csv_file(outputfile, entry)
 
 
 def build_viaf_composition_entry(
-        author_id, composition_id, title):
+        author_id, author_name, composition_id, title):
 
     values = [
         author_id
+        , author_name
         , composition_id
         , common.toByteStr(title)
     ]
@@ -85,11 +88,13 @@ def retrieve_authors_data_by_viaf_id(inputfile, outputfile):
 
     summary = summarize.read_csv_summary(inputfile)
     for row in summary[1:]: # ignore first row, which is a header
+        AUTHOR_NAME_COL = 3
         VIAF_ID_COL = 7
+        author_name = row[AUTHOR_NAME_COL]
         viaf_id = row[VIAF_ID_COL]
-        print 'viaf ID:', viaf_id
+        print 'author name:', author_name, 'viaf ID:', viaf_id
         for id in viaf_id.split(common.BLANK):
-            retrieve_viaf_compositions_by_author_id(id, outputfile)
+            retrieve_viaf_compositions_by_author_id(author_name, id, outputfile)
 
 
 # Command line parsing
