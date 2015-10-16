@@ -64,23 +64,6 @@ properties = [
     , NTA_ID_PROP
 ]
 
-wikidata_author_fieldnames = [
-    'gnd'
-    , 'wikidata'
-    , 'onb'
-    , 'name'
-    , 'genre'
-    , 'occupation'
-    , 'freebase'
-    , 'viaf'
-    , 'bnf'
-    , 'nkc'
-    , 'nta'
-    , 'imslp'
-    , 'dbpedia'
-    , 'music_brainz_artist_id'
-]
-
 wikidata_category_fieldnames = [
     'wikidata'
     , 'occupation_id'
@@ -152,7 +135,7 @@ def build_wikidata_author_entry(
         , music_brainz_artist
     ]
 
-    return dict(zip(wikidata_author_fieldnames, values))
+    return dict(zip(common.wikidata_author_fieldnames, values))
 
 
 def build_wikidata_occupation_entry(
@@ -351,7 +334,7 @@ def map_records(inputfile, outputfile):
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=wikidata_category_fieldnames, lineterminator='\n')
         writer.writeheader()
     with open(outputfile, 'w') as csvfile:
-        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=wikidata_author_fieldnames, lineterminator='\n')
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.wikidata_author_fieldnames, lineterminator='\n')
         writer.writeheader()
         store_author_data_by_gnd(inputfile, writer)
 

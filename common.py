@@ -19,6 +19,24 @@ JSON_EXT = '.json'
 XML_EXT = '.xml'
 
 
+wikidata_author_fieldnames = [
+    'gnd'
+    , 'wikidata'
+    , 'onb'
+    , 'name'
+    , 'genre'
+    , 'occupation'
+    , 'freebase'
+    , 'viaf'
+    , 'bnf'
+    , 'nkc'
+    , 'nta'
+    , 'imslp'
+    , 'dbpedia'
+    , 'music_brainz_artist_id'
+]
+
+
 def progress(progress=0):
 
     progress = round(progress * 100)
