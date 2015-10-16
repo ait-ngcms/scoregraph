@@ -86,10 +86,18 @@ class Neo4jManager:
         q = 'MATCH (a:Author)-[r:has_composition]->(m:Composition) WHERE a.name="' \
             + author + '" RETURN a, type(r), m'
         results = self.gdb.query(q, returns=(client.Node, str, client.Node))
-        for r in results:
-            print("(%s)-[%s]->(%s)" % (r[0][NAME], r[1], r[2][NAME]))
-        return results[0][2][NAME]
+        if results:
+            for r in results:
+                print("(%s)-[%s]->(%s)" % (r[0][NAME], r[1], r[2][NAME]))
+            return results[0][2][NAME]
+        return None
 
+
+    def remove_all_nodes(self):
+
+        q = 'MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r'
+        self.gdb.query(q)
+        print 'All nodes removed in Neo4J database.'
 
 
 # Main analyzing routine

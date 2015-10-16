@@ -150,6 +150,7 @@ def analyze(inputdir, dirnames, use_case):
 
     if use_case == STORE_DATA_IN_NEO4J:
         neo_db = neo4j_manager.Neo4jManager()
+        neo_db.remove_all_nodes()
         author_label = neo_db.create_label(neo4j_manager.AUTHOR_LABEL)
         values1 = [
             '1'
@@ -173,7 +174,7 @@ def analyze(inputdir, dirnames, use_case):
             '2'
             , 'wiki id'
             , 'onb id'
-            , 'Mahler, Gustav'
+            , 'Reitler, Josef'
             , 'genres'
             , 'occupations'
             , 'freebase id'
@@ -189,7 +190,7 @@ def analyze(inputdir, dirnames, use_case):
         an2 = neo_db.create_author(author_label, author2)
         composition_label = neo_db.create_label(neo4j_manager.COMPOSITION_LABEL)
         c1 = neo_db.create_composition(composition_label, 'das klagende lied')
-        neo_db.create_relationship(an1, c1, 'as_composition')
+        neo_db.create_relationship(an1, c1, 'has_composition')
         composition_name = neo_db.query_composition_by_author_name(an1[neo4j_manager.NAME])
         print 'found composition', composition_name, 'for author', an1[neo4j_manager.NAME]
 
