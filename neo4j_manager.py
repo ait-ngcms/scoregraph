@@ -8,6 +8,7 @@ $ python neo4j_manager.py
 
 import common
 import argparse
+import csv
 from neo4jrestclient import client
 from neo4jrestclient.client import GraphDatabase
 
@@ -67,6 +68,13 @@ class Neo4jManager:
         return author_node
 
 
+    def create_author_with_label(self, author):
+
+        author_label = self.create_label(AUTHOR_LABEL)
+        return self.create_author(author_label, author)
+
+
+
     def create_composition(self, db_label, composition):
 
         #composition_node = self.gdb.nodes.get(composition)
@@ -74,6 +82,12 @@ class Neo4jManager:
         composition_node = self.gdb.nodes.create(name=composition)
         db_label.add(composition_node)
         return composition_node
+
+
+    def create_composition_with_label(self, composition):
+
+        composition_label = self.create_label(COMPOSITION_LABEL)
+        return self.create_composition(composition_label, composition)
 
 
     def create_relationship(self, node1, node2, name):
@@ -100,59 +114,56 @@ class Neo4jManager:
         print 'All nodes removed in Neo4J database.'
 
 
+    def save_author_with_compositions(self, row_author, compositions, author_label, composition_label):
+
+        author_node = self.create_author(author_label, row_author)
+        #reader = csv.DictReader(open(filename_compositions), delimiter=';', fieldnames=common.viaf_compositions_fieldnames, lineterminator='\n')
+        for row_composition in compositions:
+            if row_composition[common.COMPOSITION_AUTHOR_ID_HEADER] == row_author[common.AUTHOR_VIAF_ID_HEADER]:
+                composition_node = self.create_composition(composition_label, row_composition[common.COMPOSITION_TITLE_HEADER])
+                self.create_relationship(author_node, composition_node, common.RELATION_AUTHOR_TO_COMPOSITION)
+        composition_name = self.query_composition_by_author_name(author_node[NAME])
+#        print 'found composition', composition_name, 'for author', author_node[NAME]
+
+
+def load_compositions_from_csv(filename_compositions):
+
+    compositions = []
+    reader = csv.DictReader(open(filename_compositions), delimiter=';', fieldnames=common.viaf_compositions_fieldnames, lineterminator='\n')
+    for row_composition in reader:
+        compositions.append(row_composition)
+    return compositions
+
+
+def save_mapped_authors_from_csv(filename_authors, filename_compositions):
+
+    neo_db = Neo4jManager()
+    neo_db.remove_all_nodes()
+    author_label = neo_db.create_label(AUTHOR_LABEL)
+    composition_label = neo_db.create_label(COMPOSITION_LABEL)
+
+    compositions = load_compositions_from_csv(filename_compositions)
+
+    reader = csv.DictReader(open(filename_authors), delimiter=';', fieldnames=common.wikidata_author_fieldnames, lineterminator='\n')
+    firstTime = True
+    for row in reader:
+        if not firstTime:
+            print 'row', row
+            filtered_compositions = [composition for composition in compositions if composition[common.COMPOSITION_AUTHOR_ID_HEADER] == row[common.AUTHOR_VIAF_ID_HEADER]]
+            print 'len compositions', len(filtered_compositions)
+            neo_db.save_author_with_compositions(row, filtered_compositions, author_label, composition_label)
+        else:
+            firstTime = False
+
+
 # Main analyzing routine
 
 def initialize():
 
     api_key = open(NEO4J_API_KEY_FILE_NAME).read()
     gdb = GraphDatabase(NEO4J_DATABASE_URL, username=USER_NAME, password=api_key)
-
-    # check node already exists in database
-#    q = 'MATCH (a:Author)-[r:has_composition]->(m:Composition) WHERE a.name="Mahler, Gustav" RETURN a, type(r), m'
-#    results = gdb.query(q, returns=(client.Node, str, client.Node))
-#    for r in results:
-#        print("(%s)-[%s]->(%s)" % (r[0]["name"], r[1], r[2]["name"]))
-
-    # Create author nodes with labels
-#    author = gdb.labels.create("Author")
-#    a1 = gdb.nodes.create(name="Mahler, Gustav")
-#    a1.set('wikidata', 7304)
-#    author.add(a1)
-#    a2 = gdb.nodes.create(name="Reitler, Josef")
-#    a2.set('wikidata', 1705542)
-#    author.add(a2)
-#    print 'author', author
-
-    # Create composition nodes with labels
-#    composition = gdb.labels.create("Composition")
-#    c1 = gdb.nodes.create(name="das klagende lied")
-#    composition.add(c1)
-
-    # Create relationship
-#    a1.relationships.create("has_composition", c1)
-
-    # Create and specify properties for new node
-    #n = gdb.nodes.create(color="Red", width=16, height=32)
-    #n.set('key',1)
-    #print 'n', n
-
-    #value = n['key'] # Get property value
-    #print 'value', value
-    #value = 5
-    #n['key'] = value # Set property value
-    #value = n['key']
-    #print 'value', value
     return gdb
 
-
-    # Create relationship
-#    n1 = gdb.nodes.create(color="Red", width=16, height=32)
-#    n2 = gdb.nodes.create(color="Red", width=16, height=32)
-#    n1.relationships.create("Knows", n2) # Useful when the name of
-                                         # relationship is stored in a variable
-    # Specify properties for new relationships
-#    n1.Knows(n2, since=123456789, introduced_at="Christmas party")
-#    print 'n1', n1
 
 # Command line parsing
 

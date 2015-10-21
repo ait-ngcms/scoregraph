@@ -149,6 +149,9 @@ def analyze(inputdir, dirnames, use_case):
         mediawiki_helper.load_properties()
 
     if use_case == STORE_DATA_IN_NEO4J:
+        neo4j_manager.save_mapped_authors_from_csv(inputdir + common.SLASH + MAPPED_AUTHORS_FILE
+                                                    , inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
+        '''
         neo_db = neo4j_manager.Neo4jManager()
         neo_db.remove_all_nodes()
         author_label = neo_db.create_label(neo4j_manager.AUTHOR_LABEL)
@@ -193,6 +196,7 @@ def analyze(inputdir, dirnames, use_case):
         neo_db.create_relationship(an1, c1, 'has_composition')
         composition_name = neo_db.query_composition_by_author_name(an1[neo4j_manager.NAME])
         print 'found composition', composition_name, 'for author', an1[neo4j_manager.NAME]
+        '''
 
     print '+++ Analyzing completed +++'
 

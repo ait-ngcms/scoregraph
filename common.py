@@ -18,6 +18,20 @@ BLANK = ' '
 JSON_EXT = '.json'
 XML_EXT = '.xml'
 
+# Mapped authors CSV file
+AUTHOR_NAME_COL = 3
+VIAF_ID_COL = 7
+
+# Viaf compositions CSV file
+VIAF_COMPOSITIONS_CSV_AUTHOR_ID_COL = 0
+VIAF_COMPOSITIONS_CSV_COMPOSITION_TITLE_COL = 3
+
+# Neo4j
+RELATION_AUTHOR_TO_COMPOSITION = 'has_composition'
+COMPOSITION_AUTHOR_ID_HEADER = 'author id'
+COMPOSITION_TITLE_HEADER = 'title'
+AUTHOR_VIAF_ID_HEADER = 'viaf'
+
 
 wikidata_author_fieldnames = [
     'gnd'
@@ -27,13 +41,20 @@ wikidata_author_fieldnames = [
     , 'genre'
     , 'occupation'
     , 'freebase'
-    , 'viaf'
+    , AUTHOR_VIAF_ID_HEADER
     , 'bnf'
     , 'nkc'
     , 'nta'
     , 'imslp'
     , 'dbpedia'
     , 'music_brainz_artist_id'
+]
+
+viaf_compositions_fieldnames = [
+    COMPOSITION_AUTHOR_ID_HEADER
+    , 'author name'
+    , 'work id'
+    , COMPOSITION_TITLE_HEADER
 ]
 
 

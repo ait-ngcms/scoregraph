@@ -21,13 +21,6 @@ import xml.etree.ElementTree as ET
 VIAF_API_URL = 'http://www.viaf.org/viaf/'
 VIAF_AUTHOR_DIR = 'data/viaf_author_dir'
 
-viaf_compositions_fieldnames = [
-    'author id'
-    , 'author name'
-    , 'work id'
-    , 'title'
-]
-
 
 # e.g. http://www.viaf.org/viaf/61732497/viaf.xml
 def retrieve_viaf_compositions_by_author_id(author_name, viaf_id, outputfile):
@@ -68,13 +61,13 @@ def build_viaf_composition_entry(
         , common.toByteStr(title)
     ]
 
-    return dict(zip(viaf_compositions_fieldnames, values))
+    return dict(zip(common.viaf_compositions_fieldnames, values))
 
 
 def write_composition_in_csv_file(outputfile, entry):
 
     with open(outputfile, 'ab') as csvfile:
-        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=viaf_compositions_fieldnames, lineterminator='\n')
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.viaf_compositions_fieldnames, lineterminator='\n')
         writer.writerow(entry)
 
 
@@ -83,15 +76,13 @@ def write_composition_in_csv_file(outputfile, entry):
 def retrieve_authors_data_by_viaf_id(inputfile, outputfile):
 
     with codecs.open(outputfile, 'w') as csvfile:
-        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=viaf_compositions_fieldnames, lineterminator='\n')
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.viaf_compositions_fieldnames, lineterminator='\n')
         writer.writeheader()
 
     summary = summarize.read_csv_summary(inputfile)
     for row in summary[1:]: # ignore first row, which is a header
-        AUTHOR_NAME_COL = 3
-        VIAF_ID_COL = 7
-        author_name = row[AUTHOR_NAME_COL]
-        viaf_id = row[VIAF_ID_COL]
+        author_name = row[common.AUTHOR_NAME_COL]
+        viaf_id = row[common.VIAF_ID_COL]
         print 'author name:', author_name, 'viaf ID:', viaf_id
         for id in viaf_id.split(common.BLANK):
             retrieve_viaf_compositions_by_author_id(author_name, id, outputfile)
