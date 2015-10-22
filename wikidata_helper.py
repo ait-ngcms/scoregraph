@@ -32,7 +32,6 @@ ITEMS_JSON = 'items'
 PROPS_JSON = 'props'
 VALUE_POS_IN_WIKIDATA_PROP_LIST = 2
 WIKIDATA_AUTHOR_DIR = 'data/wikidata_author_dir'
-WIKIDATA_AUTHOR_DATA_DIR = 'data/wikidata_author_data_dir'
 WIKIDATA_COMPOSITION_DATA_DIR = 'data/wikidata_composition_data_dir'
 CATEGORIES_FILE = 'data/categories.csv'
 
@@ -286,7 +285,7 @@ def store_wikidata_author_id(line, author_id, gnd, response):
 # store Wikidata author data response in format {wikidata-id}.json
 def store_wikidata_author_data(author_id, response):
 
-    common.write_json_file(WIKIDATA_AUTHOR_DATA_DIR, str(author_id) + common.JSON_EXT, response)
+    common.write_json_file(common.WIKIDATA_AUTHOR_DATA_DIR, str(author_id) + common.JSON_EXT, response)
 
 
 # store Wikidata composition data response in format {wikidata-id}.json
@@ -315,7 +314,7 @@ def store_author_data(writer, gnd, gnd_cache, line):
         if(wikidata_author_id and wikidata_author_id not in gnd_cache):
             gnd_cache.append(wikidata_author_id)
             wikidata_author_data_response_json = common.is_stored_as_json_file(
-                WIKIDATA_AUTHOR_DATA_DIR + common.SLASH + str(wikidata_author_id) + '*')
+                common.WIKIDATA_AUTHOR_DATA_DIR + common.SLASH + str(wikidata_author_id) + '*')
             if(wikidata_author_data_response_json == None):
                 print 'wikidata not exists for wikidata author ID:', wikidata_author_id
                 author_data_response = retrieve_wikidata_author_data(wikidata_author_id)

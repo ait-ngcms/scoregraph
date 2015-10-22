@@ -11,6 +11,8 @@ import argparse
 import csv
 from neo4jrestclient import client
 from neo4jrestclient.client import GraphDatabase
+# directory structure
+from os import walk
 
 NEO4J_DATABASE_URL = 'http://localhost:7474/db/data/'
 NEO4J_API_KEY_FILE_NAME = "neo4j_api_key"
@@ -19,6 +21,8 @@ NAME = 'name'
 
 AUTHOR_LABEL = 'Author'
 COMPOSITION_LABEL = 'Composition'
+JSON_WIKIDATA_AUTHOR_DATA_LABEL = 'Json Wikidata Author Data'
+JSON_CONTENT = 'JSON Content'
 
 
 class Neo4jManager:
@@ -49,9 +53,9 @@ class Neo4jManager:
 
     def create_label(self, label_name):
 
-        res = self.gdb.labels.get(label_name)
-        if res == None:
-            res = self.gdb.labels.create(label_name)
+        #res = self.gdb.labels.get(label_name)
+        #if res == None:
+        res = self.gdb.labels.create(label_name)
         return res
 
 
@@ -66,6 +70,15 @@ class Neo4jManager:
             author_node.set(field, author[field])
         db_label.add(author_node)
         return author_node
+
+
+    def create_json_entry(self, db_label, content, name):
+
+        json_node = self.gdb.nodes.create(name=name)
+        content_str = common.convert_json_dict_to_string(content)
+        json_node.set(JSON_CONTENT, content_str)
+        db_label.add(json_node)
+        return json_node
 
 
     def create_author_with_label(self, author):
@@ -126,6 +139,11 @@ class Neo4jManager:
 #        print 'found composition', composition_name, 'for author', author_node[NAME]
 
 
+    def save_json_wikidata_author_data(self, author_label, data, name):
+
+        author_node = self.create_json_entry(author_label, data, name)
+
+
 def load_compositions_from_csv(filename_compositions):
 
     compositions = []
@@ -154,6 +172,17 @@ def save_mapped_authors_from_csv(filename_authors, filename_compositions):
             neo_db.save_author_with_compositions(row, filtered_compositions, author_label, composition_label)
         else:
             firstTime = False
+
+
+def save_json_wikidata_author_data_dir(inputdir):
+
+    neo_db = Neo4jManager()
+    json_wikidata_author_data_label = neo_db.create_label(JSON_WIKIDATA_AUTHOR_DATA_LABEL)
+    for (dirpath, dirnames, filenames) in walk(inputdir):
+        for filename in filenames:
+            data = common.read_json_file(dirpath + common.SLASH + filename)
+            neo_db.save_json_wikidata_author_data(json_wikidata_author_data_label, data, filename.replace(common.JSON_EXT,''))
+
 
 
 # Main analyzing routine

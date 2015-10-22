@@ -58,6 +58,7 @@ RETRIEVE_VIAF_DATA = 'retrieve_viaf_data'
 LOAD_MEDIAWIKI_PROPERTIES = 'load_mediawiki_properties'
 CLEANUP = 'cleanup'
 STORE_DATA_IN_NEO4J = 'store_data_in_neo4j'
+STORE_JSON_WIKIDATA_AUTHOR_DATA_IN_NEO4J = 'store_json_wikidata_author_data_in_neo4j'
 
 
 def analyze(inputdir, dirnames, use_case):
@@ -151,52 +152,9 @@ def analyze(inputdir, dirnames, use_case):
     if use_case == STORE_DATA_IN_NEO4J:
         neo4j_manager.save_mapped_authors_from_csv(inputdir + common.SLASH + MAPPED_AUTHORS_FILE
                                                     , inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
-        '''
-        neo_db = neo4j_manager.Neo4jManager()
-        neo_db.remove_all_nodes()
-        author_label = neo_db.create_label(neo4j_manager.AUTHOR_LABEL)
-        values1 = [
-            '1'
-            , 'wiki id'
-            , 'onb id'
-            , 'Mahler, Gustav'
-            , 'genres'
-            , 'occupations'
-            , 'freebase id'
-            , 'viaf id'
-            , 'bnf id'
-            , 'nkc id'
-            , 'nta id'
-            , 'imslp id'
-            , ''
-            , 'music_brainz_artist id'
-        ]
-        author1 = dict(zip(common.wikidata_author_fieldnames, values1))
-        an1 = neo_db.create_author(author_label, author1)
-        values2 = [
-            '2'
-            , 'wiki id'
-            , 'onb id'
-            , 'Reitler, Josef'
-            , 'genres'
-            , 'occupations'
-            , 'freebase id'
-            , 'viaf id'
-            , 'bnf id'
-            , 'nkc id'
-            , 'nta id'
-            , 'imslp id'
-            , ''
-            , 'music_brainz_artist id'
-        ]
-        author2 = dict(zip(common.wikidata_author_fieldnames, values2))
-        an2 = neo_db.create_author(author_label, author2)
-        composition_label = neo_db.create_label(neo4j_manager.COMPOSITION_LABEL)
-        c1 = neo_db.create_composition(composition_label, 'das klagende lied')
-        neo_db.create_relationship(an1, c1, 'has_composition')
-        composition_name = neo_db.query_composition_by_author_name(an1[neo4j_manager.NAME])
-        print 'found composition', composition_name, 'for author', an1[neo4j_manager.NAME]
-        '''
+
+    if use_case == STORE_JSON_WIKIDATA_AUTHOR_DATA_IN_NEO4J:
+        neo4j_manager.save_json_wikidata_author_data_dir(common.WIKIDATA_AUTHOR_DATA_DIR)
 
     print '+++ Analyzing completed +++'
 
@@ -229,7 +187,8 @@ if __name__ == '__main__':
                     help="Analysis use cases in given order, such as 'normalize', 'enrich', 'dbpedia_analysis', 'wikidata_map'"
                          ", 'mediawiki_map', 'summarize_compositions', 'analyze_compositions'"
                          ", 'aggregate_compositions_data', 'retrieve_wikidata_compositions'"
-                         ", 'retrieve_viaf_data', 'load_mediawiki_properties', 'store_data_in_neo4j', 'cleanup'")
+                         ", 'retrieve_viaf_data', 'load_mediawiki_properties', 'store_data_in_neo4j'"
+                         ", 'store_json_wikidata_author_data_in_neo4j', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()

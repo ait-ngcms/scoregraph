@@ -26,6 +26,9 @@ VIAF_ID_COL = 7
 VIAF_COMPOSITIONS_CSV_AUTHOR_ID_COL = 0
 VIAF_COMPOSITIONS_CSV_COMPOSITION_TITLE_COL = 3
 
+# JSON folders
+WIKIDATA_AUTHOR_DATA_DIR = 'data/wikidata_author_data_dir'
+
 # Neo4j
 RELATION_AUTHOR_TO_COMPOSITION = 'has_composition'
 COMPOSITION_AUTHOR_ID_HEADER = 'author id'
@@ -274,3 +277,8 @@ def get_word_len(str):
         else:
             res = len(str)
     return res
+
+
+def convert_json_dict_to_string(json_dict):
+
+    return json.dumps(json_dict)
