@@ -120,6 +120,18 @@ class Neo4jManager:
         return None
 
 
+    def query_json(self, query):
+
+        q = "MATCH (a:`" + JSON_WIKIDATA_AUTHOR_DATA_LABEL + "`) WHERE a.name=" \
+            + query + " RETURN a"
+        results = self.gdb.query(q, returns=(client.Node, str, client.Node))
+        if results:
+            for r in results:
+                print("(%s)" % (r[0][NAME]))
+            return results[0][2][NAME]
+        return None
+
+
     def remove_all_nodes(self):
 
         q = 'MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r'
@@ -183,6 +195,11 @@ def save_json_wikidata_author_data_dir(inputdir):
             data = common.read_json_file(dirpath + common.SLASH + filename)
             neo_db.save_json_wikidata_author_data(json_wikidata_author_data_label, data, filename.replace(common.JSON_EXT,''))
 
+
+def search_in_json_neo4j(query):
+
+    neo_db = Neo4jManager()
+    neo_db.query_json(query)
 
 
 # Main analyzing routine

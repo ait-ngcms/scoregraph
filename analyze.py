@@ -59,6 +59,9 @@ LOAD_MEDIAWIKI_PROPERTIES = 'load_mediawiki_properties'
 CLEANUP = 'cleanup'
 STORE_DATA_IN_NEO4J = 'store_data_in_neo4j'
 STORE_JSON_WIKIDATA_AUTHOR_DATA_IN_NEO4J = 'store_json_wikidata_author_data_in_neo4j'
+SEARCH_IN_JSON_NEO4J = 'search_in_json_neo4j'
+GET_EUROPEANA_FACETS_COLLECTION = 'get_europeana_facets_collection'
+
 
 
 def analyze(inputdir, dirnames, use_case):
@@ -156,6 +159,12 @@ def analyze(inputdir, dirnames, use_case):
     if use_case == STORE_JSON_WIKIDATA_AUTHOR_DATA_IN_NEO4J:
         neo4j_manager.save_json_wikidata_author_data_dir(common.WIKIDATA_AUTHOR_DATA_DIR)
 
+    if use_case == SEARCH_IN_JSON_NEO4J:
+        neo4j_manager.search_in_json_neo4j('1268')
+
+    if use_case == GET_EUROPEANA_FACETS_COLLECTION:
+        wikidata_helper.search_europeana_facets()
+
     print '+++ Analyzing completed +++'
 
 
@@ -188,7 +197,7 @@ if __name__ == '__main__':
                          ", 'mediawiki_map', 'summarize_compositions', 'analyze_compositions'"
                          ", 'aggregate_compositions_data', 'retrieve_wikidata_compositions'"
                          ", 'retrieve_viaf_data', 'load_mediawiki_properties', 'store_data_in_neo4j'"
-                         ", 'store_json_wikidata_author_data_in_neo4j', 'cleanup'")
+                         ", 'store_json_wikidata_author_data_in_neo4j', 'search_in_json_neo4j', 'get_europeana_facets_collection', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()

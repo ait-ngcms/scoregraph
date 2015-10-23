@@ -30,10 +30,19 @@ GND_COL = 2
 WIKIDATA_API_URL = 'https://wdq.wmflabs.org/api?q='
 ITEMS_JSON = 'items'
 PROPS_JSON = 'props'
+
+# Europeana facet collection
+FACETS_JSON = 'facets'
+FIELDS_JSON = 'fields'
+LABEL_JSON = 'label'
+COUNT_JSON = 'label'
+
 VALUE_POS_IN_WIKIDATA_PROP_LIST = 2
 WIKIDATA_AUTHOR_DIR = 'data/wikidata_author_dir'
 WIKIDATA_COMPOSITION_DATA_DIR = 'data/wikidata_composition_data_dir'
 CATEGORIES_FILE = 'data/categories.csv'
+FACET_COLLECTION_FILE = 'data/europeana_facet_collection.csv'
+EUROPEANA_COLLECTION_URL = 'http://www.europeana.eu/api/v2/search.json?query=*%3A*&rows=0&facet=europeana_collectionName&profile=facets&f.europeana_collectionName.facet.limit=2000'
 
 
 OCCUPATION_PROP              = 106
@@ -67,6 +76,13 @@ wikidata_category_fieldnames = [
     'wikidata'
     , 'occupation_id'
     , 'category'
+]
+
+
+facet_collection_fieldnames = [
+    'id'
+    , 'label'
+    , 'count'
 ]
 
 
@@ -272,6 +288,61 @@ def get_wikidata_author_id_by_gnd(gnd, line):
     print 'wikidata_author_id', wikidata_author_id
     store_wikidata_author_id(line, wikidata_author_id, gnd, wikidata_author_id_response_json)
     return wikidata_author_id
+
+
+def search_europeana_facets(url):
+
+    print 'search Europeana facets - url:', url
+    europeana_response = common.process_http_query(url)
+    print 'response content:', europeana_response.content
+    return europeana_response
+
+
+def extract_and_save_label_data(europeana_response_json):
+
+    fields = []
+    try:
+        fields = europeana_response_json[FACETS_JSON][0]
+        with codecs.open(FACET_COLLECTION_FILE, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=facet_collection_fieldnames, lineterminator='\n')
+            writer.writeheader()
+        for field in fields[FIELDS_JSON]:
+            label = field[LABEL_JSON]
+            count = field[COUNT_JSON]
+            with open(FACET_COLLECTION_FILE, 'ab') as csvfile:
+                writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=facet_collection_fieldnames, lineterminator='\n')
+                try:
+                    id = ''
+                    if '_' in label:
+                        id = label.split('_')[0]
+                    print 'label:', label, 'id:', id, 'count:', count
+                    label_res = common.toByteStr(label)
+                    values = [
+                        str(id)
+                        , label_res
+                        , str(count)
+                    ]
+                    entry = dict(zip(facet_collection_fieldnames, values))
+                    writer.writerow(entry)
+                except UnicodeEncodeError as uee:
+                    print 'UnicodeEncodeError. Writing data in CSV for europeana facet collection. label:', label, uee
+
+    except JSONDecodeError as jde:
+        print 'JSONDecodeError. Response europeana facet collection data:', jde
+    except:
+        print 'Response json:', europeana_response_json
+        print 'Unexpected error:', sys.exc_info()[0]
+    return fields
+
+
+def search_europeana_facets():
+
+    europeana_response = common.process_http_query(EUROPEANA_COLLECTION_URL)
+    print 'response content:', europeana_response.content
+    europeana_response_json = europeana_response.json()
+    # facets -> fields -> label
+    labels = extract_and_save_label_data(europeana_response_json)
+    print 'labels len', len(labels)
 
 
 # store Wikidata author ID response in format {wikidata-id}_{onb-id}.json
