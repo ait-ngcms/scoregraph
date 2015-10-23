@@ -122,13 +122,15 @@ class Neo4jManager:
 
     def query_json(self, query):
 
-        q = "MATCH (a:`" + JSON_WIKIDATA_AUTHOR_DATA_LABEL + "`) WHERE a.name=" \
-            + query + " RETURN a"
+        q = "MATCH (a:`" + JSON_WIKIDATA_AUTHOR_DATA_LABEL + "`) WHERE a.name='" \
+            + query + "' RETURN a"
         results = self.gdb.query(q, returns=(client.Node, str, client.Node))
         if results:
             for r in results:
-                print("(%s)" % (r[0][NAME]))
-            return results[0][2][NAME]
+                node = r[0]
+                content = node.properties[JSON_CONTENT]
+                print("(%s)" % (content))
+                return content
         return None
 
 
