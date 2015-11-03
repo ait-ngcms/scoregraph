@@ -188,6 +188,43 @@ def save_mapped_authors_from_csv(filename_authors, filename_compositions):
             firstTime = False
 
 
+def save_mapping_viaf_authors_to_composition_count_in_csv(filename_authors, filename_compositions, outputfile):
+
+    compositions = load_compositions_from_csv(filename_compositions)
+
+    reader = csv.DictReader(open(filename_authors), delimiter=';', fieldnames=common.wikidata_author_fieldnames, lineterminator='\n')
+    firstTime = True
+    for row in reader:
+        if not firstTime:
+            print 'row', row
+            filtered_compositions = [composition for composition in compositions if composition[common.COMPOSITION_AUTHOR_ID_HEADER] == row[common.AUTHOR_VIAF_ID_HEADER]]
+            author = row[common.AUTHOR_NAME_HEADER]
+            length = len(filtered_compositions)
+            print 'author:', author, 'len compositions', length
+            entry = build_viaf_composition_count_entry(author, length)
+            write_composition_in_csv_file(outputfile, entry)
+        else:
+            firstTime = False
+
+
+def build_viaf_composition_count_entry(
+        author_name, composition_count):
+
+    values = [
+        author_name
+        , composition_count
+    ]
+
+    return dict(zip(common.viaf_compositions_count_fieldnames, values))
+
+
+def write_composition_in_csv_file(outputfile, entry):
+
+    with open(outputfile, 'ab') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.viaf_compositions_count_fieldnames, lineterminator='\n')
+        writer.writerow(entry)
+
+
 def save_json_wikidata_author_data_dir(inputdir):
 
     neo_db = Neo4jManager()

@@ -44,6 +44,7 @@ SUMMARY_AUTHORS_FILE = 'summary_authors.csv'
 SUMMARY_AUTHORS_NEW_FILE = 'summary_authors-new.csv'
 MAPPED_AUTHORS_FILE = 'mapped_authors.csv'
 VIAF_COMPOSITIONS_FILE = 'viaf_compositions.csv'
+VIAF_COMPOSITIONS_COUNT_FILE = 'viaf_compositions_count.csv'
 
 NORMALIZE = 'normalize'
 ENRICH = 'enrich'
@@ -61,6 +62,7 @@ STORE_DATA_IN_NEO4J = 'store_data_in_neo4j'
 STORE_JSON_WIKIDATA_AUTHOR_DATA_IN_NEO4J = 'store_json_wikidata_author_data_in_neo4j'
 SEARCH_IN_JSON_NEO4J = 'search_in_json_neo4j'
 GET_EUROPEANA_FACETS_COLLECTION = 'get_europeana_facets_collection'
+SAVE_MAPPING_VIAF_AUTHOR_COMPOSITIONS_IN_CSV = 'save_mapping_viaf_author_compositions_in_csv'
 
 
 
@@ -165,6 +167,11 @@ def analyze(inputdir, dirnames, use_case):
     if use_case == GET_EUROPEANA_FACETS_COLLECTION:
         wikidata_helper.search_europeana_facets()
 
+    if use_case == SAVE_MAPPING_VIAF_AUTHOR_COMPOSITIONS_IN_CSV:
+        neo4j_manager.save_mapping_viaf_authors_to_composition_count_in_csv(inputdir + common.SLASH + MAPPED_AUTHORS_FILE
+                                                    , inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE
+                                                    , inputdir + common.SLASH + VIAF_COMPOSITIONS_COUNT_FILE)
+
     print '+++ Analyzing completed +++'
 
 
@@ -197,7 +204,8 @@ if __name__ == '__main__':
                          ", 'mediawiki_map', 'summarize_compositions', 'analyze_compositions'"
                          ", 'aggregate_compositions_data', 'retrieve_wikidata_compositions'"
                          ", 'retrieve_viaf_data', 'load_mediawiki_properties', 'store_data_in_neo4j'"
-                         ", 'store_json_wikidata_author_data_in_neo4j', 'search_in_json_neo4j', 'get_europeana_facets_collection', 'cleanup'")
+                         ", 'store_json_wikidata_author_data_in_neo4j', 'search_in_json_neo4j'"
+                         ", 'get_europeana_facets_collection', 'save_mapping_viaf_author_compositions_in_csv', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()

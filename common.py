@@ -21,6 +21,7 @@ XML_EXT = '.xml'
 # Mapped authors CSV file
 AUTHOR_NAME_COL = 3
 VIAF_ID_COL = 7
+AUTHOR_NAME_HEADER = 'name'
 
 # Viaf compositions CSV file
 VIAF_COMPOSITIONS_CSV_AUTHOR_ID_COL = 0
@@ -58,6 +59,12 @@ viaf_compositions_fieldnames = [
     , 'author name'
     , 'work id'
     , COMPOSITION_TITLE_HEADER
+]
+
+
+viaf_compositions_count_fieldnames = [
+    'author name'
+    , 'count'
 ]
 
 
