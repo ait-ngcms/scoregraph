@@ -35,6 +35,7 @@ import mediawiki_helper
 import freebase_helper
 import viaf_helper
 import neo4j_manager
+import musicbrainz_helper
 
 import time
 
@@ -65,7 +66,7 @@ SEARCH_IN_JSON_NEO4J = 'search_in_json_neo4j'
 GET_EUROPEANA_FACETS_COLLECTION = 'get_europeana_facets_collection'
 SAVE_MAPPING_VIAF_AUTHOR_COMPOSITIONS_IN_CSV = 'save_mapping_viaf_author_compositions_in_csv'
 SAVE_MAPPING_FREEBASE_AUTHOR_COMPOSITIONS_IN_CSV = 'save_mapping_freebase_author_compositions_in_csv'
-
+RETRIEVE_MUSICBRAINZ_COMPOSITION_DATA = 'retrieve_musicbrainz_composition_data'
 
 
 def analyze(inputdir, dirnames, use_case):
@@ -178,6 +179,9 @@ def analyze(inputdir, dirnames, use_case):
         freebase_helper.save_mapping_authors_to_composition_count_in_csv(freebase_helper.SUMMARY_COMPOSITIONS_FILE
                                                     , inputdir + common.SLASH + FREEBASE_COMPOSITIONS_COUNT_FILE)
 
+    if use_case == RETRIEVE_MUSICBRAINZ_COMPOSITION_DATA:
+        musicbrainz_helper.retrieve_musicbrainz_composition_data(inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
+
     print '+++ Analyzing completed +++'
 
 
@@ -212,7 +216,7 @@ if __name__ == '__main__':
                          ", 'retrieve_viaf_data', 'load_mediawiki_properties', 'store_data_in_neo4j'"
                          ", 'store_json_wikidata_author_data_in_neo4j', 'search_in_json_neo4j'"
                          ", 'get_europeana_facets_collection', 'save_mapping_viaf_author_compositions_in_csv'"
-                         ", 'save_mapping_freebase_author_compositions_in_csv', 'cleanup'")
+                         ", 'save_mapping_freebase_author_compositions_in_csv', 'retrieve_musicbrainz_composition_data', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()

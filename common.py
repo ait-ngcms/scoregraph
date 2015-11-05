@@ -25,12 +25,16 @@ AUTHOR_NAME_HEADER = 'name'
 
 # Viaf compositions CSV file
 VIAF_COMPOSITIONS_CSV_AUTHOR_ID_COL = 0
+VIAF_COMPOSITIONS_CSV_VIAF_WORK_ID_COL = 2
 VIAF_COMPOSITIONS_CSV_COMPOSITION_TITLE_COL = 3
 
 # JSON folders
 WIKIDATA_AUTHOR_DATA_DIR = 'data/wikidata_author_data_dir'
 RESULT = 'result'
 AUTHOR_NAME = 'author name'
+WORKS_JSON = 'works'
+ID_JSON = 'id'
+RELATIONS_JSON = 'relations'
 
 # Freebase
 FREEBASE_PREFIX = '/m/'
@@ -64,6 +68,11 @@ viaf_compositions_fieldnames = [
     , AUTHOR_NAME
     , 'work id'
     , COMPOSITION_TITLE_HEADER
+]
+
+viaf_musicbrainz_compositions_mapping_fieldnames = [
+    'viaf id'
+    , 'musicbrainz id'
 ]
 
 
