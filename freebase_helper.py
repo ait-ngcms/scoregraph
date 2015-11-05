@@ -67,6 +67,65 @@ def retrieve_compositions(author_id):
             print 'incorrect Freebase key:', author_id, ke
 
 
+def save_mapping_authors_to_composition_count_in_csv(filename_authors, outputfile):
+
+    reader = csv.DictReader(open(filename_authors), delimiter=';', fieldnames=common.viaf_compositions_count_fieldnames, lineterminator='\n')
+    firstTime = True
+    for row in reader:
+        if not firstTime:
+            print 'row', row
+            author = row[common.AUTHOR_NAME]
+            author_id = author.split('.')[0]
+            name, length = count_compositions(author_id)
+            if name != None:
+                print 'author:', name, 'len compositions', length
+                entry = build_freebase_composition_count_entry(common.toByteStr(name), length)
+                write_composition_in_csv_file(outputfile, entry)
+        else:
+            firstTime = False
+
+
+def build_freebase_composition_count_entry(
+        author_name, length):
+
+    values = [
+        author_name
+        , length
+    ]
+
+    return dict(zip(common.viaf_compositions_count_fieldnames, values))
+
+
+def write_composition_in_csv_file(outputfile, entry):
+
+    with open(outputfile, 'ab') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.viaf_compositions_count_fieldnames, lineterminator='\n')
+        writer.writerow(entry)
+
+
+def count_compositions(author_id):
+
+    if author_id:
+        query = [{'mid': common.FREEBASE_PREFIX + author_id,
+              common.AUTHOR_NAME_HEADER: None,
+              "type": "/music/composer",
+              COMPOSITIONS: [{"return": "count"}]
+             }]
+        response = find_freebase_items(query)
+        try:
+            if any(response[common.RESULT]) == False:
+                return None, None
+            for author in response[common.RESULT]:
+                print author[common.AUTHOR_NAME_HEADER]
+                print COMPOSITIONS, author[COMPOSITIONS]
+                count = 0
+                if author[COMPOSITIONS][0]:
+                    count = author[COMPOSITIONS][0]
+                return author[common.AUTHOR_NAME_HEADER], count
+        except KeyError as ke:
+            print 'incorrect Freebase key:', author_id, ke
+
+
 def retrieve_compositions_data(composition_id):
 
     if composition_id:

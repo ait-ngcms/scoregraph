@@ -29,6 +29,11 @@ VIAF_COMPOSITIONS_CSV_COMPOSITION_TITLE_COL = 3
 
 # JSON folders
 WIKIDATA_AUTHOR_DATA_DIR = 'data/wikidata_author_data_dir'
+RESULT = 'result'
+AUTHOR_NAME = 'author name'
+
+# Freebase
+FREEBASE_PREFIX = '/m/'
 
 # Neo4j
 RELATION_AUTHOR_TO_COMPOSITION = 'has_composition'
@@ -56,14 +61,14 @@ wikidata_author_fieldnames = [
 
 viaf_compositions_fieldnames = [
     COMPOSITION_AUTHOR_ID_HEADER
-    , 'author name'
+    , AUTHOR_NAME
     , 'work id'
     , COMPOSITION_TITLE_HEADER
 ]
 
 
 viaf_compositions_count_fieldnames = [
-    'author name'
+    AUTHOR_NAME
     , 'count'
 ]
 
