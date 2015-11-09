@@ -13,6 +13,7 @@ import common
 import summarize
 import json
 import codecs
+import os
 
 MUSICBRAINZ_API_URL = 'http://musicbrainz.org/ws/2/'
 MUSICBRAINZ_COMPOSITION_DIR = 'data/musicbrainz_composition_dir'
@@ -32,9 +33,10 @@ def retrieve_musicbrainz_compositions_by_title(composition_title, viaf_id):
         if len(works) > 0:
             json_data = works[0]
             musicbrainz_composition_id = json_data[common.ID_JSON]
-            print 'musicbrainz_composition_id:', musicbrainz_composition_id
-            store_musicbrainz_composition_data(musicbrainz_composition_id, json_data)
-            store_mapping_composition_viafid_musicbranzid(viaf_id, musicbrainz_composition_id)
+            if str(musicbrainz_composition_id) + common.JSON_EXT not in os.listdir(MUSICBRAINZ_COMPOSITION_DIR):
+                print 'musicbrainz_composition_id:', musicbrainz_composition_id
+                store_musicbrainz_composition_data(musicbrainz_composition_id, json_data)
+                store_mapping_composition_viafid_musicbranzid(viaf_id, musicbrainz_composition_id)
     except ValueError as ve:
         print 'Could not find JSON for given Musicbrainz composition.', composition_title, ve.message
     except Exception as e:
@@ -79,9 +81,10 @@ def retrieve_musicbrainz_composition_data(inputfile):
 
     # an input file contains work titles from the VIAF repository
     summary = summarize.read_csv_summary(inputfile)
-    with codecs.open(VIAF_MUSICBRAINZ_COMPOSITION_MAPPING_FILE, 'w') as csvfile:
-        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.viaf_musicbrainz_compositions_mapping_fieldnames, lineterminator='\n')
-        writer.writeheader()
+    if not os.path.exists(inputfile):
+        with codecs.open(VIAF_MUSICBRAINZ_COMPOSITION_MAPPING_FILE, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.viaf_musicbrainz_compositions_mapping_fieldnames, lineterminator='\n')
+            writer.writeheader()
 
     for row in summary[1:]: # ignore first row, which is a header
         author_name = row[common.AUTHOR_NAME_COL]
