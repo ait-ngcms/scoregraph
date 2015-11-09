@@ -87,7 +87,7 @@ def retrieve_musicbrainz_composition_data(inputfile):
             writer.writeheader()
 
     for row in summary[1:]: # ignore first row, which is a header
-        author_name = row[common.AUTHOR_NAME_COL]
+        author_name = row[common.VIAF_COMPOSITIONS_CSV_AUTHOR_ID_COL]
         composition_title = row[common.VIAF_COMPOSITIONS_CSV_COMPOSITION_TITLE_COL]
         viaf_id = row[common.VIAF_COMPOSITIONS_CSV_VIAF_WORK_ID_COL].replace('VIAF|','')
         print 'author name:', author_name, 'composition title:', composition_title, 'viaf ID:', viaf_id
