@@ -51,6 +51,23 @@ def find_europeana_items(query):
         return result['items']
 
 
+def find_europeana_items_ext(query):
+    payload = {'wskey': EUROPEANA_API_KEY,
+               'profile': 'standard',
+               'query': query,
+               'start': 1,
+               'rows': 200}
+    r = requests.get(EUROPEANA_API_URI, params=payload)
+    if(r.status_code != 200):
+        print("FAILURE: Request", r.url, "failed")
+        return None
+    result = r.json()
+    if result.get('totalResults') is None:
+        return None
+    else:
+        return result['totalResults']
+
+
 def extract_europeana_data(europeana_items):
     data = []
     for item in europeana_items:
@@ -115,6 +132,25 @@ def enrich_europeana(data):
         else:
             data['related_europeana_items'] = enrichments
     return data
+
+
+def count_europeana_items(name):
+    """Counts compositions in Europeana dataset"""
+    query = name
+
+    # all items returned by Europeana
+    print("\tSearching Europeana for '", query)
+    print("' ...")
+
+    europeana_items = find_europeana_items_ext(query)
+#    if(europeana_items is None):
+#        print("0 results.")
+#        return 0
+#    else:
+#        print(len(europeana_items), "results.")
+#        return len(europeana_items)
+    print(europeana_items, "results.")
+    return europeana_items
 
 
 # GND enrichment

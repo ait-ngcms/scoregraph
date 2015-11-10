@@ -21,7 +21,9 @@ XML_EXT = '.xml'
 # Mapped authors CSV file
 AUTHOR_NAME_COL = 3
 VIAF_ID_COL = 7
+GND_HEADER = 'gnd'
 AUTHOR_NAME_HEADER = 'name'
+FREEBASE_HEADER = 'freebase'
 
 # Viaf compositions CSV file
 VIAF_COMPOSITIONS_CSV_AUTHOR_ID_COL = 0
@@ -79,6 +81,15 @@ viaf_musicbrainz_compositions_mapping_fieldnames = [
 viaf_compositions_count_fieldnames = [
     AUTHOR_NAME
     , 'count'
+]
+
+
+comprehensive_compositions_count_fieldnames = [
+    GND_HEADER
+    , AUTHOR_NAME_HEADER
+    , 'viaf_len'
+    , 'freebase_len'
+    , 'europeana_len'
 ]
 
 

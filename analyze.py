@@ -36,6 +36,7 @@ import freebase_helper
 import viaf_helper
 import neo4j_manager
 import musicbrainz_helper
+import statistics
 
 import time
 
@@ -47,6 +48,7 @@ MAPPED_AUTHORS_FILE = 'mapped_authors.csv'
 VIAF_COMPOSITIONS_FILE = 'viaf_compositions.csv'
 VIAF_COMPOSITIONS_COUNT_FILE = 'viaf_compositions_count.csv'
 FREEBASE_COMPOSITIONS_COUNT_FILE = 'freebase_compositions_count.csv'
+COMPREHENSIVE_COMPOSITIONS_COUNT_FILE = 'comprehensive_compositions_count.csv'
 
 NORMALIZE = 'normalize'
 ENRICH = 'enrich'
@@ -68,6 +70,7 @@ SAVE_MAPPING_VIAF_AUTHOR_COMPOSITIONS_IN_CSV = 'save_mapping_viaf_author_composi
 SAVE_MAPPING_FREEBASE_AUTHOR_COMPOSITIONS_IN_CSV = 'save_mapping_freebase_author_compositions_in_csv'
 RETRIEVE_MUSICBRAINZ_COMPOSITION_DATA = 'retrieve_musicbrainz_composition_data'
 RETRIEVE_VIAF_COMPOSITION_DATA = 'retrieve_viaf_composition_data'
+COMPREHENSIVE_COMPOSITION_STATISTIC = 'comprehensive_composition_statistic'
 
 
 def analyze(inputdir, dirnames, use_case):
@@ -186,8 +189,14 @@ def analyze(inputdir, dirnames, use_case):
     if use_case == RETRIEVE_VIAF_COMPOSITION_DATA:
         viaf_helper.retrieve_viaf_composition_data(inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
 
-    print '+++ Analyzing completed +++'
+    if use_case == COMPREHENSIVE_COMPOSITION_STATISTIC:
+        statistics.retrieve_comprehensive_composition_count(
+            inputdir + common.SLASH + MAPPED_AUTHORS_FILE
+            , inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE
+            , inputdir + common.SLASH + COMPREHENSIVE_COMPOSITIONS_COUNT_FILE
+        )
 
+    print '+++ Analyzing completed +++'
 
 
 # Main analyzing routine
@@ -221,7 +230,7 @@ if __name__ == '__main__':
                          ", 'store_json_wikidata_author_data_in_neo4j', 'search_in_json_neo4j'"
                          ", 'get_europeana_facets_collection', 'save_mapping_viaf_author_compositions_in_csv'"
                          ", 'save_mapping_freebase_author_compositions_in_csv', 'retrieve_musicbrainz_composition_data'"
-                         ", 'retrieve_viaf_composition_data', 'cleanup'")
+                         ", 'retrieve_viaf_composition_data', 'comprehensive_composition_statistic', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()
