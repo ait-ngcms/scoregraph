@@ -87,9 +87,10 @@ viaf_compositions_count_fieldnames = [
 comprehensive_compositions_count_fieldnames = [
     GND_HEADER
     , AUTHOR_NAME_HEADER
-    , 'viaf_len'
-    , 'freebase_len'
-    , 'europeana_len'
+    , 'viaf compositions count'
+    , 'freebase compositions count'
+    , 'europeana references count by name'
+    , 'europeana references count by gnd'
 ]
 
 

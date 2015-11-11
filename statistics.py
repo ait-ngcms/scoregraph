@@ -36,16 +36,6 @@ def build_comprehensive_composition_count_entry(
     return dict(zip(common.comprehensive_compositions_count_fieldnames, values))
 
 
-#def count_freebase_compositions(id):
-
-#    try:
-#        inputfile = freebase_helper.FREEBASE_COMPOSITIONS_DIR + common.SLASH + id + common.JSON_EXT
-#        compositions_content_json = common.read_json_file(inputfile)
-#        composition_list = compositions_content_json['result'][0]['compositions']
-#        return len(composition_list)
-#    except Exception:
-#        print 'Cannot find Freebase ID:', id
-#        return 0
 
 # Main mapping routine
 
@@ -71,9 +61,10 @@ def retrieve_comprehensive_composition_count(filename_authors, filename_viaf_com
                 freebase_len = 0
                 if freebase_id:
                     name, freebase_len = freebase_helper.count_compositions(freebase_id)
-                #freebase_len = count_freebase_compositions(freebase_id)
                 europeana_len = enrich.count_europeana_items(author)
-                print 'gnd:', gnd, 'author:', author, 'VIAF len:', viaf_len, 'Freebase len:', freebase_len, 'Europeana len:', europeana_len
+                europeana_gnd_len = enrich.count_europeana_items_by_gnd(gnd)
+                print 'gnd:', gnd, 'author:', author, 'VIAF len:', viaf_len, 'Freebase len:', freebase_len\
+                    , 'Europeana references count by title:', europeana_len, 'Europeana references count by title:', europeana_gnd_len
                 if author:
                     entry = build_comprehensive_composition_count_entry(gnd, author, viaf_len, freebase_len, europeana_len)
                     writer.writerow(entry)

@@ -35,8 +35,13 @@ def persons(soup):
         name = tag.find(label="p")
         if not name:
             name = tag.find(label="a")
+        ext = ''
+        if ' ' not in name.string:
+            ext_tag = tag.find(label="n")
+            if ext_tag:
+                ext = ' ' + tag.find(label="n").string
         if name:
-            person['name'] = name.string
+            person['name'] = name.string + ext
         # lifetime
         lifetime = tag.find(label="d")
         if lifetime:
