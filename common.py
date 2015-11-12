@@ -92,6 +92,7 @@ comprehensive_compositions_count_fieldnames = [
     , 'europeana references count by name'
     , 'europeana references count by gnd'
     , 'europeana references count by gnd and sameAs'
+    , 'europeana references count by name for all variations'
 ]
 
 sameas_fieldnames = [
