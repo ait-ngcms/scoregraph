@@ -58,6 +58,7 @@ def find_europeana_items_ext(query):
                'start': 1,
                'rows': 200}
     r = requests.get(EUROPEANA_API_URI, params=payload)
+    print 'Europeana query URL:', r.url
     if(r.status_code != 200):
         print("FAILURE: Request", r.url, "failed")
         return None

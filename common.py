@@ -91,7 +91,16 @@ comprehensive_compositions_count_fieldnames = [
     , 'freebase compositions count'
     , 'europeana references count by name'
     , 'europeana references count by gnd'
+    , 'europeana references count by gnd and sameAs'
 ]
+
+sameas_fieldnames = [
+    'onb id'
+    , 'author name'
+    , 'gnd url'
+    , 'sameAs'
+]
+
 
 
 def progress(progress=0):

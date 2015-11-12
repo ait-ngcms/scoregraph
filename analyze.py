@@ -42,6 +42,7 @@ import time
 
 
 SUMMARY_TITLES_FILE = 'summary_titles.csv'
+SUMMARY_SAMEAS_FILE = 'summary_sameas.csv'
 SUMMARY_AUTHORS_FILE = 'summary_authors.csv'
 SUMMARY_AUTHORS_NEW_FILE = 'summary_authors-new.csv'
 MAPPED_AUTHORS_FILE = 'mapped_authors.csv'
@@ -52,6 +53,9 @@ COMPREHENSIVE_COMPOSITIONS_COUNT_FILE = 'comprehensive_compositions_count.csv'
 
 NORMALIZE = 'normalize'
 ENRICH = 'enrich'
+SAME_AS = 'same_as'
+SUMMARIZE_AUTHORS = 'summarize_authors'
+SUMMARIZE_TITLES = 'summarize titles'
 DBPEDIA_ANALYSIS = 'dbpedia_analysis'
 WIKIDATA_MAP = 'wikidata_map'
 MEIDAWIKI_MAP = 'mediawiki_map'
@@ -118,6 +122,41 @@ def analyze(inputdir, dirnames, use_case):
                 enriched_files = [(enriched_path + common.SLASH + element) for element in enriched_files]
                 summarize.summarize_records(enriched_files, inputdir + '/summary_' + mode_enriched + '.csv')
                 summarize.summarize_titles(normalized_files, inputdir + common.SLASH + SUMMARY_TITLES_FILE)
+                summarize.summarize_authors(normalized_files, inputdir + common.SLASH + SUMMARY_AUTHORS_FILE)
+            else:
+                print 'Error. ' + mode_enriched + ' folder is missing.'
+        else:
+            print 'Error. ' + mode_normalized + ' folder is missing.'
+
+    if use_case == SAME_AS:
+        # summarize sameAs entries in enriched JSON
+        enriched_files = os.listdir(enriched_path)
+        enriched_files = [(enriched_path + common.SLASH + element) for element in enriched_files]
+        if mode_enriched in dirnames:
+            summarize.summarize_sameas(enriched_files, inputdir + common.SLASH + SUMMARY_SAMEAS_FILE)
+        else:
+            print 'Error. ' + mode_enriched + ' folder is missing.'
+
+    if use_case == SUMMARIZE_TITLES:
+        if mode_normalized in dirnames:
+            normalized_files = os.listdir(normalized_path)
+            normalized_files = [(normalized_path + common.SLASH + element) for element in normalized_files]
+
+            # summarize statistics
+            if mode_enriched in dirnames:
+                summarize.summarize_titles(normalized_files, inputdir + common.SLASH + SUMMARY_TITLES_FILE)
+            else:
+                print 'Error. ' + mode_enriched + ' folder is missing.'
+        else:
+            print 'Error. ' + mode_normalized + ' folder is missing.'
+
+    if use_case == SUMMARIZE_AUTHORS:
+        if mode_normalized in dirnames:
+            normalized_files = os.listdir(normalized_path)
+            normalized_files = [(normalized_path + common.SLASH + element) for element in normalized_files]
+
+            # summarize statistics
+            if mode_enriched in dirnames:
                 summarize.summarize_authors(normalized_files, inputdir + common.SLASH + SUMMARY_AUTHORS_FILE)
             else:
                 print 'Error. ' + mode_enriched + ' folder is missing.'
@@ -193,6 +232,7 @@ def analyze(inputdir, dirnames, use_case):
         statistics.retrieve_comprehensive_composition_count(
             inputdir + common.SLASH + MAPPED_AUTHORS_FILE
             , inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE
+            , inputdir + common.SLASH + SUMMARY_SAMEAS_FILE
             , inputdir + common.SLASH + COMPREHENSIVE_COMPOSITIONS_COUNT_FILE
         )
 
@@ -223,14 +263,15 @@ if __name__ == '__main__':
     parser.add_argument('inputdir', type=str, help="Input files to be processed")
     parser.add_argument('-u', '--use_case', type=str, nargs='?',
                     default="data/mapping.csv",
-                    help="Analysis use cases in given order, such as 'normalize', 'enrich', 'dbpedia_analysis', 'wikidata_map'"
+                    help="Analysis use cases in given order, such as 'normalize', 'enrich', 'same_as', 'dbpedia_analysis', 'wikidata_map'"
                          ", 'mediawiki_map', 'summarize_compositions', 'analyze_compositions'"
                          ", 'aggregate_compositions_data', 'retrieve_wikidata_compositions'"
                          ", 'retrieve_viaf_data', 'load_mediawiki_properties', 'store_data_in_neo4j'"
                          ", 'store_json_wikidata_author_data_in_neo4j', 'search_in_json_neo4j'"
                          ", 'get_europeana_facets_collection', 'save_mapping_viaf_author_compositions_in_csv'"
                          ", 'save_mapping_freebase_author_compositions_in_csv', 'retrieve_musicbrainz_composition_data'"
-                         ", 'retrieve_viaf_composition_data', 'comprehensive_composition_statistic', 'cleanup'")
+                         ", 'retrieve_viaf_composition_data', 'comprehensive_composition_statistic', 'summarize_authors'"
+                         ", 'summarize_titles', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()

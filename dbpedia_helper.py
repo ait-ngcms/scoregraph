@@ -40,6 +40,7 @@ def analyze_titles_by_dbpedia(query_list):
     # spot entities - detects all the mentions in DBPedia that could refer to an entity in the text
     print("\tSearching Dexter for author, subject and title.")
 
+    #dbpedia_items = None
     for query in query_list[1:3]:
         print 'query:', query
         dbpedia_items = find_dbpedia_items(query)

@@ -178,6 +178,41 @@ def summarize_authors_data(data, fieldnames):
     return entries
 
 
+def summarize_sameas_data(data, fieldnames):
+
+    entries = []
+    onb_id = ''
+
+    if(DOC_ID_JSON in data):
+        onb_id = data[DOC_ID_JSON]
+        print data[DOC_ID_JSON]
+
+    if(PERSONS_JSON in data):
+        for person in data[PERSONS_JSON]:
+            author = person[NAME_JSON]
+            links = []
+            link_person_gnd = []
+            if(SAMEAS_JSON in person):
+                 links = [link for link in person[SAMEAS_JSON]]
+                 link_person_gnd = [link for link in links
+                                         if GND_JSON in link]
+
+            gnd = ''
+            if(len(link_person_gnd) > 0):
+                gnd = link_person_gnd[0]
+
+            values = [
+                onb_id
+                , common.toByteStr(author)
+                , gnd
+                , ' '.join(map(str,links))
+            ]
+            entry = dict(zip(fieldnames, values))
+            entries.append(entry)
+
+    return entries
+
+
 def summarize_titles(inputfiles, outputfile):
 
     print("Summarizing", len(inputfiles), "titles in", outputfile)
@@ -209,6 +244,18 @@ def summarize_authors(inputfiles, outputfile):
         for filename, record in read_records(inputfiles):
             data = json.loads(record, encoding='utf-8')
             entries = summarize_authors_data(data, fieldnames)
+            writer.writerows(entries)
+
+
+def summarize_sameas(inputfiles, outputfile):
+
+    print("Summarizing", len(inputfiles), "authors in", outputfile)
+    with codecs.open(outputfile, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.sameas_fieldnames, lineterminator='\n')
+        writer.writeheader()
+        for filename, record in read_records(inputfiles):
+            data = json.loads(record, encoding='utf-8')
+            entries = summarize_sameas_data(data, common.sameas_fieldnames)
             writer.writerows(entries)
 
 
