@@ -114,6 +114,13 @@ musicbrainz_works_and_recordings_fieldnames = [
     , 'alternative names'
 ]
 
+map_compositions_fieldnames = [
+    GND_HEADER
+    , 'Title'
+    , 'Wikidata ID'
+    , 'VIAF ID'
+    , 'MUSICBRAINZ ID'
+]
 
 
 def progress(progress=0):

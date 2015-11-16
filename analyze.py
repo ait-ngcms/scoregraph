@@ -52,6 +52,8 @@ FREEBASE_COMPOSITIONS_COUNT_FILE = 'freebase_compositions_count.csv'
 COMPREHENSIVE_COMPOSITIONS_COUNT_FILE = 'comprehensive_compositions_count.csv'
 MUSICBRAINZ_WORKS_FILE = 'musicbrainz_works.csv'
 MUSICBRAINZ_RECORDINGS_FILE = 'musicbrainz_recordings.csv'
+MAPPED_COMPOSITIONS_FILE = 'mapped_compositions.csv'
+
 
 NORMALIZE = 'normalize'
 ENRICH = 'enrich'
@@ -78,7 +80,7 @@ RETRIEVE_MUSICBRAINZ_COMPOSITION_DATA = 'retrieve_musicbrainz_composition_data'
 RETRIEVE_VIAF_COMPOSITION_DATA = 'retrieve_viaf_composition_data'
 COMPREHENSIVE_COMPOSITION_STATISTIC = 'comprehensive_composition_statistic'
 RETRIEVE_MUSICBRAINZ_WORKS_AND_RECORDINGS = 'retrieve_musicbrainz_works_and_recordings'
-AGGREGATE_VIAF_COMPOSITION_DATA_IN_CSV = 'aggregate_viaf_composition_data_in_csv'
+MAP_COMPOSITION_DATA_IN_CSV = 'map_composition_data_in_csv'
 
 
 def analyze(inputdir, dirnames, use_case):
@@ -239,9 +241,6 @@ def analyze(inputdir, dirnames, use_case):
     if use_case == RETRIEVE_VIAF_COMPOSITION_DATA:
         viaf_helper.retrieve_viaf_composition_data(inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
 
-    if use_case == AGGREGATE_VIAF_COMPOSITION_DATA_IN_CSV:
-        viaf_helper.aggregate_viaf_composition_data_in_csv(inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
-
     if use_case == COMPREHENSIVE_COMPOSITION_STATISTIC:
         statistics.retrieve_comprehensive_composition_count(
             inputdir + common.SLASH + MAPPED_AUTHORS_FILE
@@ -249,6 +248,13 @@ def analyze(inputdir, dirnames, use_case):
             , inputdir + common.SLASH + SUMMARY_SAMEAS_FILE
             , inputdir + common.SLASH + COMPREHENSIVE_COMPOSITIONS_COUNT_FILE
         )
+
+    if use_case == MAP_COMPOSITION_DATA_IN_CSV:
+        statistics.map_composition_data_in_csv(
+            inputdir + common.SLASH + MAPPED_AUTHORS_FILE
+            , inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE
+            , inputdir + common.SLASH + MUSICBRAINZ_WORKS_FILE
+            , inputdir + common.SLASH + MAPPED_COMPOSITIONS_FILE)
 
     print '+++ Analyzing completed +++'
 
@@ -285,7 +291,7 @@ if __name__ == '__main__':
                          ", 'get_europeana_facets_collection', 'save_mapping_viaf_author_compositions_in_csv'"
                          ", 'save_mapping_freebase_author_compositions_in_csv', 'retrieve_musicbrainz_composition_data'"
                          ", 'retrieve_viaf_composition_data', 'comprehensive_composition_statistic', 'summarize_authors'"
-                         ", 'summarize_titles', 'retrieve_musicbrainz_works_and_recordings', 'aggregate_viaf_composition_data_in_csv', 'cleanup'")
+                         ", 'summarize_titles', 'retrieve_musicbrainz_works_and_recordings', 'map_composition_data_in_csv', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()
