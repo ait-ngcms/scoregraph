@@ -121,6 +121,8 @@ def build_wikidata_author_entry(
     row = line.split(";")
     genres = extract_property_value(author_response_json, GENRE_PROP)
     occupations = extract_property_value(author_response_json, OCCUPATION_PROP)
+#    if 'Stoll' in line:
+#        ii = 0
     for occupation in occupations.split(common.BLANK):
         add_occupation(occupation, wikidata_author_id)
     freebase = extract_property_value(author_response_json, FREEBASE_ID_PROP)

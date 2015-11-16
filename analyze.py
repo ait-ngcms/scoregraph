@@ -50,6 +50,8 @@ VIAF_COMPOSITIONS_FILE = 'viaf_compositions.csv'
 VIAF_COMPOSITIONS_COUNT_FILE = 'viaf_compositions_count.csv'
 FREEBASE_COMPOSITIONS_COUNT_FILE = 'freebase_compositions_count.csv'
 COMPREHENSIVE_COMPOSITIONS_COUNT_FILE = 'comprehensive_compositions_count.csv'
+MUSICBRAINZ_WORKS_FILE = 'musicbrainz_works.csv'
+MUSICBRAINZ_RECORDINGS_FILE = 'musicbrainz_recordings.csv'
 
 NORMALIZE = 'normalize'
 ENRICH = 'enrich'
@@ -75,6 +77,8 @@ SAVE_MAPPING_FREEBASE_AUTHOR_COMPOSITIONS_IN_CSV = 'save_mapping_freebase_author
 RETRIEVE_MUSICBRAINZ_COMPOSITION_DATA = 'retrieve_musicbrainz_composition_data'
 RETRIEVE_VIAF_COMPOSITION_DATA = 'retrieve_viaf_composition_data'
 COMPREHENSIVE_COMPOSITION_STATISTIC = 'comprehensive_composition_statistic'
+RETRIEVE_MUSICBRAINZ_WORKS_AND_RECORDINGS = 'retrieve_musicbrainz_works_and_recordings'
+AGGREGATE_VIAF_COMPOSITION_DATA_IN_CSV = 'aggregate_viaf_composition_data_in_csv'
 
 
 def analyze(inputdir, dirnames, use_case):
@@ -225,8 +229,18 @@ def analyze(inputdir, dirnames, use_case):
     if use_case == RETRIEVE_MUSICBRAINZ_COMPOSITION_DATA:
         musicbrainz_helper.retrieve_musicbrainz_composition_data(inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
 
+    if use_case == RETRIEVE_MUSICBRAINZ_WORKS_AND_RECORDINGS:
+        musicbrainz_helper.retrieve_musicbrainz_works_and_recordings(
+            inputdir + common.SLASH + MAPPED_AUTHORS_FILE
+            , inputdir + common.SLASH + MUSICBRAINZ_WORKS_FILE
+            , inputdir + common.SLASH + MUSICBRAINZ_RECORDINGS_FILE
+        )
+
     if use_case == RETRIEVE_VIAF_COMPOSITION_DATA:
         viaf_helper.retrieve_viaf_composition_data(inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
+
+    if use_case == AGGREGATE_VIAF_COMPOSITION_DATA_IN_CSV:
+        viaf_helper.aggregate_viaf_composition_data_in_csv(inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE)
 
     if use_case == COMPREHENSIVE_COMPOSITION_STATISTIC:
         statistics.retrieve_comprehensive_composition_count(
@@ -271,7 +285,7 @@ if __name__ == '__main__':
                          ", 'get_europeana_facets_collection', 'save_mapping_viaf_author_compositions_in_csv'"
                          ", 'save_mapping_freebase_author_compositions_in_csv', 'retrieve_musicbrainz_composition_data'"
                          ", 'retrieve_viaf_composition_data', 'comprehensive_composition_statistic', 'summarize_authors'"
-                         ", 'summarize_titles', 'cleanup'")
+                         ", 'summarize_titles', 'retrieve_musicbrainz_works_and_recordings', 'aggregate_viaf_composition_data_in_csv', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()

@@ -21,6 +21,7 @@ XML_EXT = '.xml'
 # Mapped authors CSV file
 AUTHOR_NAME_COL = 3
 VIAF_ID_COL = 7
+MUSICBRAINZ_ID_COL = 13
 GND_HEADER = 'gnd'
 AUTHOR_NAME_HEADER = 'name'
 FREEBASE_HEADER = 'freebase'
@@ -35,6 +36,10 @@ WIKIDATA_AUTHOR_DATA_DIR = 'data/wikidata_author_data_dir'
 RESULT = 'result'
 AUTHOR_NAME = 'author name'
 WORKS_JSON = 'works'
+RECORDINGS_JSON = 'recordings'
+ALIASES_JSON = 'aliases'
+TITLE_JSON = 'title'
+NAME_JSON = 'name'
 ID_JSON = 'id'
 RELATIONS_JSON = 'relations'
 
@@ -100,6 +105,13 @@ sameas_fieldnames = [
     , 'author name'
     , 'gnd url'
     , 'sameAs'
+]
+
+musicbrainz_works_and_recordings_fieldnames = [
+    'id'
+    , 'author name'
+    , 'title'
+    , 'alternative names'
 ]
 
 
