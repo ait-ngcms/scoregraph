@@ -115,8 +115,8 @@ musicbrainz_works_and_recordings_fieldnames = [
 ]
 
 map_compositions_fieldnames = [
-    GND_HEADER
-    , 'Title'
+    'title'
+    , 'author name'
     , 'Wikidata ID'
     , 'VIAF ID'
     , 'MUSICBRAINZ ID'

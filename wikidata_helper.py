@@ -55,7 +55,7 @@ FREEBASE_ID_PROP             = 646
 GENRE_PROP                   = 136
 IMSLP_ID_PROP                = 839
 NTA_ID_PROP                  = 1006
-
+MUSICBRAINZ_COMPOSITION_ID_PROP = 435
 COMMONS_CATEGORY_PROP        = 373
 
 
@@ -217,6 +217,113 @@ def retrieve_wikidata_compositions_by_freebase_id(inputfile):
 #                    store_wikidata_composition_data(wikidata_composition_id, composition_response_json.content)
         except KeyError as ke:
             print 'no composition items found:', row[FREEBASE_ID_COL], ke
+
+
+# query Wikidata by Musicbrainz ID, where Musicbrainz Identifier is a property P435
+# e.g. https://wdq.wmflabs.org/api?q=string[435:ad8df966-dba7-43d0-8d0e-91e69df5b5ef] for 'symphonie nr 2'
+def retrieve_wikidata_composition_by_musicbrainz_id(musicbrainz_id):
+
+    query = WIKIDATA_API_URL + 'string[' + str(MUSICBRAINZ_COMPOSITION_ID_PROP) + ':' + musicbrainz_id + ']'
+    print 'query wikidata composition:', query
+    wikidata_composition_response = common.process_http_query(query)
+    print 'response wikidata composition content:', wikidata_composition_response.content
+    return wikidata_composition_response
+
+
+# query Wikidata by wikidata composition ID for a VIAF id, which is represented
+# by property 'VIAF ID'
+# e.g. https://www.wikidata.org/wiki/Q5064 for 'The Magic Flute' in browser
+#      https://wdq.wmflabs.org/api?q=items[5064]&props=214 in API
+def retrieve_wikidata_composition_viaf_id_by_wikidata_id(wikidata_composition_id):
+
+    composition_response_json = None
+    try:
+        query_composition = WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_composition_id) + ']&' + \
+                       PROPS_JSON + '=' + str(VIAF_ID_PROP)
+        print 'query composition:', query_composition
+        composition_response_json = common.process_http_query(query_composition)
+    except:
+        print 'No VIAF id found for composition ID:', wikidata_composition_id
+    print 'composition json data:', composition_response_json
+    return composition_response_json
+
+
+def retrieve_wikidata_compositions_by_musicbrainz_id(inputfile, outputfile):
+
+    with codecs.open(outputfile, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.map_compositions_fieldnames, lineterminator='\n')
+        writer.writeheader()
+
+        summary = summarize.read_csv_summary(inputfile)
+        for row in summary[1:]: # ignore first row, which is a header
+            MUSICBRAINZ_ID_COL = 0
+            MUSICBRAINZ_AUTHOR_NAME_COL = 1
+            MUSICBRAINZ_TITLE_COL = 2
+            musicbrainz_id = row[MUSICBRAINZ_ID_COL]
+            print musicbrainz_id
+            wikidata_composition_response = retrieve_wikidata_composition_by_musicbrainz_id(musicbrainz_id)
+            print wikidata_composition_response
+            try:
+                wikidata_composition_response_json = json.loads(wikidata_composition_response.content)
+                items = wikidata_composition_response_json[ITEMS_JSON]
+                viaf_id = 0
+                wikidata_composition_id = 0
+                if len(items) > 0:
+                    wikidata_composition_id = items[0]
+                    print 'wikidata_composition_id:', wikidata_composition_id
+                    composition_response_json = common.is_stored_as_json_file(
+                        WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_composition_id) + ']&' + PROPS_JSON + '=*')
+                    if(composition_response_json == None):
+                        print 'composition data not exists for composition:', wikidata_composition_id
+                        print 'composition json:', composition_response_json
+                        store_wikidata_composition_data(wikidata_composition_id, composition_response_json)
+                    wikidata_composition_viaf_response = retrieve_wikidata_composition_viaf_id_by_wikidata_id(wikidata_composition_id)
+                    try:
+                        #wikidata_composition_viaf_response_json = wikidata_composition_viaf_response.json()
+                        wikidata_composition_viaf_response_json = json.loads(wikidata_composition_viaf_response.content)
+                        #items = wikidata_composition_response_json[ITEMS_JSON]
+                        viaf_id = extract_viaf_id_from_wikidata_composition_id(wikidata_composition_viaf_response_json)
+                    except:
+                        print 'No VIAF id found for composition ID:', wikidata_composition_id
+
+                    print 'viaf id:', viaf_id
+
+                entry = build_composition_mapping_entry(
+                            row[MUSICBRAINZ_TITLE_COL]
+                            , row[MUSICBRAINZ_AUTHOR_NAME_COL]
+                            , wikidata_composition_id
+                            , viaf_id
+                            , musicbrainz_id
+                )
+                writer.writerow(entry)
+            except KeyError as ke:
+                print 'no composition items found:', row[MUSICBRAINZ_ID_COL], ke
+
+
+def extract_viaf_id_from_wikidata_composition_id(response):
+
+    try:
+        return response[ITEMS_JSON][0]
+    except JSONDecodeError as jde:
+        print 'JSONDecodeError. Response composition:', response.content
+        print 'Incorrect JSON syntax!', jde
+    except IndexError as ie:
+        print 'No items found!', ie
+    return None
+
+
+def build_composition_mapping_entry(
+        title, author_name, wikidata_id, viaf_id, musicbrainz_id):
+
+    values = [
+        title
+        , author_name
+        , wikidata_id
+        , viaf_id
+        , musicbrainz_id
+    ]
+
+    return dict(zip(common.map_compositions_fieldnames, values))
 
 
 #def retrieve_wikidata_composition_data(wikidata_composition_id):

@@ -251,9 +251,7 @@ def analyze(inputdir, dirnames, use_case):
 
     if use_case == MAP_COMPOSITION_DATA_IN_CSV:
         statistics.map_composition_data_in_csv(
-            inputdir + common.SLASH + MAPPED_AUTHORS_FILE
-            , inputdir + common.SLASH + VIAF_COMPOSITIONS_FILE
-            , inputdir + common.SLASH + MUSICBRAINZ_WORKS_FILE
+            inputdir + common.SLASH + MUSICBRAINZ_WORKS_FILE
             , inputdir + common.SLASH + MAPPED_COMPOSITIONS_FILE)
 
     print '+++ Analyzing completed +++'

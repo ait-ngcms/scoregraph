@@ -17,6 +17,7 @@ import summarize
 
 import neo4j_manager
 import freebase_helper
+import wikidata_helper
 import enrich # connection to Europeana
 
 import xml.etree.ElementTree as ET
@@ -52,6 +53,10 @@ def retrieve_sameas_urls(filename_sameas):
             firstTime = False
     return res
 
+
+def map_composition_data_in_csv(filename_mapped_authors, outputfile):
+
+    wikidata_helper.retrieve_wikidata_compositions_by_musicbrainz_id(filename_mapped_authors, outputfile)
 
 # Main mapping routine
 
