@@ -53,6 +53,9 @@ def retrieve_musicbrainz_works_and_recordings_by_id(id, author, output_works, ou
 
     try:
         query_work = MUSICBRAINZ_API_URL + 'artist/' + id + '?inc=aliases%20works%20recordings&fmt=json'
+#        query_work = MUSICBRAINZ_API_URL + 'artist/' + id + '?inc=aliases%20works%20recordings&client=apikey&fmt=json'
+#http://api.acoustid.org/v2/lookup?client=ULjKruIg&meta=recordings+releasegroups+compress&duration=641&fingerprint=AQABz0qUkZK4oOfhL-CPc4e5C_wW2H2QH9uDL4cvoT8UNQ-eHtsE8cceeFJx-LiiHT-aPzhxoc-Opj_eI5d2hOFyMJRzfDk-QSsu7fBxqZDMHcfxPfDIoPWxv9C1o3y
+        query_work = MUSICBRAINZ_API_URL + 'artist/' + id + '?inc=aliases%20works%20recordings&client=apikey&fmt=json'
         print 'query work:', query_work
         work_response = common.process_http_query(query_work)
         print 'musicbrainz composition:', work_response
