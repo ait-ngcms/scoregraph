@@ -53,6 +53,7 @@ COMPREHENSIVE_COMPOSITIONS_COUNT_FILE = 'comprehensive_compositions_count.csv'
 MUSICBRAINZ_WORKS_FILE = 'musicbrainz_works.csv'
 MUSICBRAINZ_RECORDINGS_FILE = 'musicbrainz_recordings.csv'
 MAPPED_COMPOSITIONS_FILE = 'mapped_compositions.csv'
+MUSICBRAINZ_COMPOSITIONS_COUNT_FILE = 'musicbrainz_compositions_count.csv'
 
 
 NORMALIZE = 'normalize'
@@ -81,6 +82,7 @@ RETRIEVE_VIAF_COMPOSITION_DATA = 'retrieve_viaf_composition_data'
 COMPREHENSIVE_COMPOSITION_STATISTIC = 'comprehensive_composition_statistic'
 RETRIEVE_MUSICBRAINZ_WORKS_AND_RECORDINGS = 'retrieve_musicbrainz_works_and_recordings'
 MAP_COMPOSITION_DATA_IN_CSV = 'map_composition_data_in_csv'
+CALCULATE_MUSICBRAINZ_WORKS_AND_RECORDINGS_COUNT = 'calculate_musicbrainz_works_and_recordings_count'
 
 
 def analyze(inputdir, dirnames, use_case):
@@ -253,6 +255,12 @@ def analyze(inputdir, dirnames, use_case):
         statistics.map_composition_data_in_csv(
             inputdir + common.SLASH + MUSICBRAINZ_WORKS_FILE
             , inputdir + common.SLASH + MAPPED_COMPOSITIONS_FILE)
+
+    if use_case == CALCULATE_MUSICBRAINZ_WORKS_AND_RECORDINGS_COUNT:
+        musicbrainz_helper.calculate_musicbrainz_works_and_recordings_count(
+            inputdir + common.SLASH + MAPPED_AUTHORS_FILE
+            , inputdir + common.SLASH + MUSICBRAINZ_COMPOSITIONS_COUNT_FILE
+        )
 
     print '+++ Analyzing completed +++'
 

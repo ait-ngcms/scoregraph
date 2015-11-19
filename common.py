@@ -82,9 +82,14 @@ viaf_musicbrainz_compositions_mapping_fieldnames = [
     , 'musicbrainz id'
 ]
 
-
 viaf_compositions_count_fieldnames = [
     AUTHOR_NAME
+    , 'count'
+]
+
+musicbrainz_compositions_count_fieldnames = [
+    'id'
+    , AUTHOR_NAME
     , 'count'
 ]
 
