@@ -14,6 +14,7 @@ import summarize
 import json
 import codecs
 import os
+import glob
 
 MUSICBRAINZ_API_URL = 'http://musicbrainz.org/ws/2/'
 MUSICBRAINZ_COMPOSITION_DIR = 'data/musicbrainz_composition_dir'
@@ -71,18 +72,21 @@ def retrieve_musicbrainz_works_and_recordings_by_id(id, author, output_works, ou
 
 
 # e.g. http://musicbrainz.org/ws/2/artist/8d610e51-64b4-4654-b8df-064b0fb7a9d9?inc=aliases%20works%20recordings&fmt=json
+# count version: http://musicbrainz.org/ws/2/work?artist=8d610e51-64b4-4654-b8df-064b0fb7a9d9&inc=aliases&fmt=json
 # for Mahler, Gustav
 def calculate_musicbrainz_works_and_recordings_by_id(id, author, output_file):
 
     try:
-        query_work = MUSICBRAINZ_API_URL + 'artist/' + id + '?inc=aliases%20works%20recordings&fmt=json'
+#        query_work = MUSICBRAINZ_API_URL + 'artist/' + id + '?inc=aliases%20works%20recordings&fmt=json'
+        query_work = MUSICBRAINZ_API_URL + 'work?artist=' + id + '&inc=aliases&fmt=json'
         print 'query compositions:', query_work
         work_response = common.process_http_query(query_work)
         print 'musicbrainz composition:', work_response
         musicbrainz_composition_response_json = json.loads(work_response.content)
-        works_count = len(musicbrainz_composition_response_json[common.WORKS_JSON])
-        recordings_count = len(musicbrainz_composition_response_json[common.RECORDINGS_JSON])
-        compositions_count = works_count + recordings_count
+#        works_count = len(musicbrainz_composition_response_json[common.WORKS_JSON])
+        compositions_count = str(musicbrainz_composition_response_json[common.WORK_COUNT_JSON])
+        #recordings_count = len(musicbrainz_composition_response_json[common.RECORDINGS_JSON])
+        #compositions_count = works_count + recordings_count
         print 'musicbrainz #composition:', compositions_count
         values = [
             id
@@ -174,7 +178,9 @@ def calculate_musicbrainz_works_and_recordings_count(inputfile, output_compositi
 
     # an input file contains mapped author data with musicbrainz author IDs
     summary = summarize.read_csv_summary(inputfile)
-    if not output_compositions:
+    outputfile = glob.glob(output_compositions)
+    if not outputfile:
+    #if not output_compositions:
         with codecs.open(output_compositions, 'w') as csvfile:
             writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.musicbrainz_compositions_count_fieldnames, lineterminator='\n')
             writer.writeheader()
@@ -193,8 +199,8 @@ def calculate_musicbrainz_works_and_recordings_count(inputfile, output_compositi
                     isStored = True
                     print 'is already stored.'
                     break
-            if isStored == False:
-                calculate_musicbrainz_works_and_recordings_by_id(mapping_musicbrainz_id, author_name, output_compositions)
+            if isStored == False and mapping_musicbrainz_id:
+                calculate_musicbrainz_works_and_recordings_by_id(mapping_musicbrainz_id.split(' ')[0], author_name, output_compositions)
         except:
             print ''
 
