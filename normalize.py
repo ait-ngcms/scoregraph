@@ -53,10 +53,14 @@ def persons(soup):
             person['role'] = role
         # gnd_link
         gnd_link = tag.find(label="9")
+        save = True
+        if gnd_link != '':
+            save = False
         if gnd_link:
             gnd_link = GND_PREFIX + "/" + gnd_link.string[8:]
             person['sameas'] = [gnd_link]
-        persons.append(person)
+        if save:
+            persons.append(person)
     return persons
 
 
