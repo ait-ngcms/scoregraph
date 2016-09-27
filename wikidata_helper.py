@@ -40,6 +40,7 @@ COUNT_JSON = 'label'
 VALUE_POS_IN_WIKIDATA_PROP_LIST = 2
 WIKIDATA_AUTHOR_DIR = 'data/wikidata_author_dir'
 WIKIDATA_COMPOSITION_DATA_DIR = 'data/wikidata_composition_data_dir'
+WIKIDATA_BAND_DATA_DIR = 'data/wikidata_band_data_dir'
 CATEGORIES_FILE = 'data/categories.csv'
 FACET_COLLECTION_FILE = 'data/europeana_facet_collection.csv'
 EUROPEANA_COLLECTION_URL = 'http://www.europeana.eu/api/v2/search.json?query=*%3A*&rows=0&facet=europeana_collectionName&profile=facets&f.europeana_collectionName.facet.limit=2000'
@@ -57,6 +58,7 @@ IMSLP_ID_PROP                = 839
 NTA_ID_PROP                  = 1006
 MUSICBRAINZ_COMPOSITION_ID_PROP = 435
 COMMONS_CATEGORY_PROP        = 373
+INTERNET_ARCHIVE_ID_PROP     = 724
 
 
 properties = [
@@ -230,6 +232,17 @@ def retrieve_wikidata_composition_by_musicbrainz_id(musicbrainz_id):
     return wikidata_composition_response
 
 
+# query Wikidata by Internet Archive ID, where Internet Archive Identifier is a property P724
+# e.g. https://wdq.wmflabs.org/api?q=string[724:PhilLeshandFriends]
+def retrieve_wikidata_object_by_internet_archive_id(internet_archive_id):
+
+    query = WIKIDATA_API_URL + 'string[' + str(INTERNET_ARCHIVE_ID_PROP) + ':' + internet_archive_id + ']'
+    print 'query wikidata object:', query
+    wikidata_object_response = common.process_http_query(query)
+    print 'response wikidata object content:', wikidata_object_response.content
+    return wikidata_object_response
+
+
 # query Wikidata by wikidata composition ID for a VIAF id, which is represented
 # by property 'VIAF ID'
 # e.g. https://www.wikidata.org/wiki/Q5064 for 'The Magic Flute' in browser
@@ -300,6 +313,56 @@ def retrieve_wikidata_compositions_by_musicbrainz_id(inputfile, outputfile):
                 print 'no composition items found:', row[MUSICBRAINZ_ID_COL], ke
 
 
+def retrieve_wikidata_objects_by_internet_archive_id(inputfile, outputfile):
+
+    with codecs.open(outputfile, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.map_band_fieldnames, lineterminator='\n')
+        writer.writeheader()
+
+        summary = summarize.read_csv_summary(inputfile)
+        for row in summary[1:]: # ignore first row, which is a header
+            INTERNET_ARCHIVE_ID_COL = 0
+            BAND_NAME_COL = 1
+            internet_archive_id_path = row[INTERNET_ARCHIVE_ID_COL]
+            internet_archive_id = internet_archive_id_path.split("/")[-1]
+            print "internet_archive_id:", internet_archive_id
+            wikidata_object_response = retrieve_wikidata_object_by_internet_archive_id(internet_archive_id)
+            print wikidata_object_response
+            try:
+                wikidata_object_response_json = json.loads(wikidata_object_response.content)
+                items = wikidata_object_response_json[ITEMS_JSON]
+                wikidata_band_id = 0
+                musicbrainz_id = 0
+                if len(items) > 0:
+                    wikidata_band_id = items[0]
+                    print 'wikidata_band_id:', wikidata_band_id
+                    wikidata_band_response_json = common.is_stored_as_json_file(
+                        WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_band_id) + ']&' + PROPS_JSON + '=*')
+                    if(wikidata_band_response_json == None):
+                        print 'band data not exists for id:', wikidata_band_id
+                        band_data_response = retrieve_wikidata_band_data(wikidata_band_id)
+                        wikidata_band_data_response_json = common.validate_response_json(band_data_response)
+                    store_wikidata_band_data(wikidata_band_id, wikidata_band_data_response_json)
+                    print 'band json:', wikidata_band_data_response_json
+
+                    try:
+                        musicbrainz_id = extract_property_value(wikidata_band_data_response_json, MUSIC_BRAINZ_ARTIST_ID_PROP)
+                    except:
+                        print 'No musicbrainz id found for band ID:', wikidata_band_id
+
+                    print 'musicbrainz id:', musicbrainz_id
+
+                entry = build_band_mapping_entry(
+                            row[BAND_NAME_COL]
+                            , wikidata_band_id
+                            , internet_archive_id
+                            , musicbrainz_id
+                )
+                writer.writerow(entry)
+            except KeyError as ke:
+                print 'no composition items found:', row[INTERNET_ARCHIVE_ID_COL], ke
+
+
 def extract_viaf_id_from_wikidata_composition_id(response):
 
     try:
@@ -326,6 +389,19 @@ def build_composition_mapping_entry(
     return dict(zip(common.map_compositions_fieldnames, values))
 
 
+def build_band_mapping_entry(
+        title, wikidata_id, internet_archive_id, musicbrainz_id):
+
+    values = [
+        title
+        , wikidata_id
+        , internet_archive_id
+        , musicbrainz_id
+    ]
+
+    return dict(zip(common.map_band_fieldnames, values))
+
+
 #def retrieve_wikidata_composition_data(wikidata_composition_id):
 
 #    query_composition = WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_composition_id) + ']&' + \
@@ -334,6 +410,16 @@ def build_composition_mapping_entry(
 #    composition_response_json = common.process_http_query(query_composition)
 #    print 'composition json data:', composition_response_json
 #    return composition_response_json
+
+
+def retrieve_wikidata_band_data(wikidata_band_id):
+
+    query_band = WIKIDATA_API_URL + ITEMS_JSON + '[' + str(wikidata_band_id) + ']&' + \
+                   PROPS_JSON + '=*'
+    print 'query band:', query_band
+    band_response_json = common.process_http_query(query_band)
+    print 'band json data:', band_response_json
+    return band_response_json
 
 
 # query Wikidata by wikidata ID for an author
@@ -472,6 +558,12 @@ def store_wikidata_author_data(author_id, response):
 def store_wikidata_composition_data(composition_id, response):
 
     common.write_json_file(WIKIDATA_COMPOSITION_DATA_DIR, str(composition_id) + common.JSON_EXT, response)
+
+
+# store Wikidata band data response in format {wikidata-id}.json
+def store_wikidata_band_data(band_id, response):
+
+    common.write_json_file(WIKIDATA_BAND_DATA_DIR, str(band_id) + common.JSON_EXT, response)
 
 
 def store_author_data_by_gnd(inputfile, writer):

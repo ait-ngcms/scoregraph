@@ -71,6 +71,13 @@ wikidata_author_fieldnames = [
     , 'music_brainz_artist_id'
 ]
 
+freebase_wikidata_mapping = [
+    'Freebase ID'
+    , 'Wikidata URL'
+    , 'Label'
+    , 'GND'
+]
+
 viaf_compositions_fieldnames = [
     COMPOSITION_AUTHOR_ID_HEADER
     , AUTHOR_NAME
@@ -126,6 +133,14 @@ map_compositions_fieldnames = [
     , 'Wikidata ID'
     , 'VIAF ID'
     , 'MUSICBRAINZ ID'
+]
+
+
+map_band_fieldnames = [
+    'title'
+    , 'Wikidata ID'
+    , 'Internet Archive ID'
+    , 'Musicbrainz ID'
 ]
 
 

@@ -54,6 +54,8 @@ MUSICBRAINZ_WORKS_FILE = 'musicbrainz_works.csv'
 MUSICBRAINZ_RECORDINGS_FILE = 'musicbrainz_recordings.csv'
 MAPPED_COMPOSITIONS_FILE = 'mapped_compositions.csv'
 MUSICBRAINZ_COMPOSITIONS_COUNT_FILE = 'musicbrainz_compositions_count.csv'
+BAND_INPUT_FILE = 'bands.csv'
+MAPPED_BAND_FILE = 'mapped_bands.csv'
 
 
 NORMALIZE = 'normalize'
@@ -83,6 +85,7 @@ COMPREHENSIVE_COMPOSITION_STATISTIC = 'comprehensive_composition_statistic'
 RETRIEVE_MUSICBRAINZ_WORKS_AND_RECORDINGS = 'retrieve_musicbrainz_works_and_recordings'
 MAP_COMPOSITION_DATA_IN_CSV = 'map_composition_data_in_csv'
 CALCULATE_MUSICBRAINZ_WORKS_AND_RECORDINGS_COUNT = 'calculate_musicbrainz_works_and_recordings_count'
+MAP_BAND_DATA_IN_CSV = 'map_band_data_in_csv'
 
 
 def analyze(inputdir, dirnames, use_case):
@@ -262,6 +265,11 @@ def analyze(inputdir, dirnames, use_case):
             , inputdir + common.SLASH + MUSICBRAINZ_COMPOSITIONS_COUNT_FILE
         )
 
+    if use_case == MAP_BAND_DATA_IN_CSV:
+        statistics.map_band_data_in_csv(
+            inputdir + common.SLASH + BAND_INPUT_FILE
+            , inputdir + common.SLASH + MAPPED_BAND_FILE)
+
     print '+++ Analyzing completed +++'
 
 
@@ -297,7 +305,7 @@ if __name__ == '__main__':
                          ", 'get_europeana_facets_collection', 'save_mapping_viaf_author_compositions_in_csv'"
                          ", 'save_mapping_freebase_author_compositions_in_csv', 'retrieve_musicbrainz_composition_data'"
                          ", 'retrieve_viaf_composition_data', 'comprehensive_composition_statistic', 'summarize_authors'"
-                         ", 'summarize_titles', 'retrieve_musicbrainz_works_and_recordings', 'map_composition_data_in_csv', 'cleanup'")
+                         ", 'summarize_titles', 'retrieve_musicbrainz_works_and_recordings', 'map_composition_data_in_csv', 'map_band_data_in_csv', 'cleanup'")
 
     if len(sys.argv) < 2:
         parser.print_help()

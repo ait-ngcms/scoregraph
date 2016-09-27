@@ -58,6 +58,12 @@ def map_composition_data_in_csv(filename_mapped_authors, outputfile):
 
     wikidata_helper.retrieve_wikidata_compositions_by_musicbrainz_id(filename_mapped_authors, outputfile)
 
+
+def map_band_data_in_csv(filename_mapped_authors, outputfile):
+
+    wikidata_helper.retrieve_wikidata_objects_by_internet_archive_id(filename_mapped_authors, outputfile)
+
+
 # Main mapping routine
 
 def retrieve_comprehensive_composition_count(filename_authors, filename_viaf_compositions, filename_sameas, outputfile):
@@ -70,8 +76,10 @@ def retrieve_comprehensive_composition_count(filename_authors, filename_viaf_com
         sameas = retrieve_sameas_urls(filename_sameas)
         reader = csv.DictReader(open(filename_authors), delimiter=';', fieldnames=common.wikidata_author_fieldnames, lineterminator='\n')
         firstTime = True
+        count = 0
         for row in reader:
-            if not firstTime:
+            count += 1
+            if not firstTime and count > 234:
                 print 'row', row
                 filtered_compositions = [composition for composition in compositions if composition[common.COMPOSITION_AUTHOR_ID_HEADER] == row[common.AUTHOR_VIAF_ID_HEADER]]
                 author = row[common.AUTHOR_NAME_HEADER]
@@ -81,22 +89,28 @@ def retrieve_comprehensive_composition_count(filename_authors, filename_viaf_com
                 freebase_id = freebase_id.replace(common.FREEBASE_PREFIX,'')
                 print 'freebase id:', freebase_id
                 freebase_len = 0
-                if freebase_id:
-                    name, freebase_len = freebase_helper.count_compositions(freebase_id)
+                name = ''
+                ##if freebase_id:
+                ##    name, freebase_len = freebase_helper.count_compositions(freebase_id)
                 #europeana_len = enrich.count_europeana_items(author)
                 query = author
                 query_all = author
                 if ',' in author:
                     params = author.split(',')
-                    query = 'who:(' + "\"" + params[0] + ' ' + params[1] + "\"" + ' OR ' + "\"" + params[1] + ' ' + params[0] + "\"" + ')'
-                    query_all = '(' + params[0] + ' ' + params[1] + ') OR (' + params[1] + ' ' + params[0] + ')'
+#                    query = 'who:(' + "\"" + params[0] + ' ' + params[1] + "\"" + ' OR ' + "\"" + params[1] + ' ' + params[0] + "\"" + ')'
+                    query = 'who:(' + "\"" + params[0] + ', ' + params[1] + "\"" + ' OR ' + "\"" + params[1] + ', ' + params[0] + "\"" + ')'
+#                    query_all = '(' + params[0] + ' ' + params[1] + ') OR (' + params[1] + ' ' + params[0] + ')'
+                    query_all = '("' + params[0] + ', ' + params[1] + '" OR "' + params[1] + ', ' + params[0] + '")'
+                europeana_len = 0
+                europeana_gnd_sameas_len = 0
+                europeana_gnd_len = 0
                 europeana_len = enrich.count_europeana_items(query)
                 europeana_all_len = enrich.count_europeana_items(query_all)
-                europeana_gnd_len = enrich.count_europeana_items("edm_agent:\"" + gnd + "\"")
+                ##europeana_gnd_len = enrich.count_europeana_items("edm_agent:\"" + gnd + "\"")
                 sameas_urls = sameas[gnd].replace(" ", "\" OR \"")
                 #sameas_or_str = "\"" + " OR " + "\""
 #                europeana_gnd_sameas_len = enrich.count_europeana_items("edm_agent:(\"" + gnd + sameas_or_str.join(map(str,sameas_urls)) + ")")
-                europeana_gnd_sameas_len = enrich.count_europeana_items("edm_agent:(\"" + sameas_urls + "\")")
+                ##europeana_gnd_sameas_len = enrich.count_europeana_items("edm_agent:(\"" + sameas_urls + "\")")
                 print 'gnd:', gnd, 'author:', author, 'VIAF len:', viaf_len, 'Freebase len:', freebase_len\
                     , 'Europeana references count by title:', europeana_len, 'Europeana references count by GND:', europeana_gnd_len\
                     , 'Europeana references count by GND and sameAs:', europeana_gnd_sameas_len\
