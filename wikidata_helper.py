@@ -21,6 +21,9 @@ import freebase_helper
 
 import summarize
 
+# helper for SPARQL queries
+from SPARQLWrapper import SPARQLWrapper, JSON
+
 
 ONB_COL = 0
 NAME_COL = 1
@@ -311,6 +314,18 @@ def retrieve_wikidata_compositions_by_musicbrainz_id(inputfile, outputfile):
                 writer.writerow(entry)
             except KeyError as ke:
                 print 'no composition items found:', row[MUSICBRAINZ_ID_COL], ke
+
+
+def retrieve_wikidata_objects_by_label(label):
+    import pywikibot
+    from pywikibot import pagegenerators, WikidataBot
+
+    print 'search wikidata entities for label:', label
+    sparql = "SELECT ?item WHERE { ?item rdfs:label '" + label + "'@en }"
+    entities = pagegenerators.WikidataQueryPageGenerator(sparql, site=None)
+    entities = list(entities)
+    print entities
+    return entities
 
 
 def retrieve_wikidata_objects_by_internet_archive_id(inputfile, outputfile):
@@ -608,6 +623,33 @@ def map_records(inputfile, outputfile):
         writer = csv.DictWriter(csvfile, delimiter=';', fieldnames=common.wikidata_author_fieldnames, lineterminator='\n')
         writer.writeheader()
         store_author_data_by_gnd(inputfile, writer)
+
+
+def retrieve_wikidata_entry_by_label_using_sparql(label):
+
+    sparql = SPARQLWrapper("https://query.wikidata.org/bigdata/namespace/wdq/sparql")
+    print 'Query label:', label
+    query_string = \
+        "SELECT ?item \n" \
+        "WHERE { \n" \
+        "?item rdfs:label\"" + label + "\" @en \n" \
+        "}\n";
+
+    print 'Query string: ', query_string
+
+    sparql.setQuery(query_string)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+
+    wikidata_url = ''
+
+    try:
+        result = results["results"]["bindings"][0]
+        wikidata_url = result["item"]["value"]
+    except Exception as e:
+        print 'JSON parse error. Missing entry for label: ', label, 'and Wikidata URL:', wikidata_url, e
+    print('wikidata URL: ', wikidata_url, 'label: ', label)
+    return wikidata_url
 
 
 # Command line parsing
