@@ -24,6 +24,9 @@ import summarize
 # helper for SPARQL queries
 from SPARQLWrapper import SPARQLWrapper, JSON
 
+# HTTP connection
+import requests
+
 
 ONB_COL = 0
 NAME_COL = 1
@@ -48,6 +51,7 @@ CATEGORIES_FILE = 'data/categories.csv'
 FACET_COLLECTION_FILE = 'data/europeana_facet_collection.csv'
 EUROPEANA_COLLECTION_URL = 'http://www.europeana.eu/api/v2/search.json?query=*%3A*&rows=0&facet=europeana_collectionName&profile=facets&f.europeana_collectionName.facet.limit=2000'
 
+GOOGLE_QUERY_BASE_URL = 'https://www.google.at/search?q='
 
 OCCUPATION_PROP              = 106
 VIAF_ID_PROP                 = 214
@@ -650,6 +654,58 @@ def retrieve_wikidata_entry_by_label_using_sparql(label):
         print 'JSON parse error. Missing entry for label: ', label, 'and Wikidata URL:', wikidata_url, e
     print('wikidata URL: ', wikidata_url, 'label: ', label)
     return wikidata_url
+
+
+# HTTP request for HTML content for particular URL
+def get_html(url):
+    r = requests.get(url)
+    print 'status code', r.status_code
+    if r.status_code != 200:
+        print("FAILURE: Request", r.url, "failed")
+        return None
+    return r.content
+
+
+def createGoogleSearchQuery(queryText):
+    return GOOGLE_QUERY_BASE_URL + queryText.replace(' ', '+')
+
+
+# HTTP request for HTML content for particular query from Google
+def query_google(query):
+    query_url = createGoogleSearchQuery(query)
+    print 'query url:', query_url
+    return get_html(query_url)
+
+
+# this method extracts passed tag value from a given HTML source
+def extract_tag_from_html(html_source, tag_name):
+    try:
+        from BeautifulSoup import BeautifulSoup
+    except ImportError:
+        from bs4 import BeautifulSoup
+    parsed_html = BeautifulSoup(html_source)
+    value = parsed_html.find(tag_name).text
+    print tag_name, ":", value
+    return value
+
+
+# this method extracts google location URL and title from a given HTML source
+def extract_google_location_from_html(pattern, html_source):
+    import re
+    docsPattern = pattern
+    docTuples = re.findall(docsPattern, html_source, re.DOTALL)
+    print docTuples
+    return docTuples
+
+
+# this method parses Google address into parts to facilitate further search
+def parseGoogleAddress(docTuples):
+    LABEL_POS = 0
+    STREET_POS = 1
+    CITY_POS = 2
+    COUNTRY_POS = 3
+    address = docTuples[0].split(",")
+    return createGoogleSearchQuery(address[LABEL_POS]), address[LABEL_POS], address[STREET_POS], address[CITY_POS], address[COUNTRY_POS]
 
 
 # Command line parsing
