@@ -52,6 +52,8 @@ FACET_COLLECTION_FILE = 'data/europeana_facet_collection.csv'
 EUROPEANA_COLLECTION_URL = 'http://www.europeana.eu/api/v2/search.json?query=*%3A*&rows=0&facet=europeana_collectionName&profile=facets&f.europeana_collectionName.facet.limit=2000'
 
 GOOGLE_QUERY_BASE_URL = 'https://www.google.at/search?q='
+GOOGLE_MAPS_BASE_PATH = 'https://maps.google.at/maps/'
+
 
 OCCUPATION_PROP              = 106
 VIAF_ID_PROP                 = 214
@@ -698,6 +700,12 @@ def extract_google_location_from_html(pattern, html_source):
     return docTuples
 
 
+# this method parses Google map URL
+def parseGoogleMapsStr(docTuples):
+    location = docTuples[0].replace('&amp;','&')
+    return GOOGLE_MAPS_BASE_PATH + location
+
+
 # this method parses Google address into parts to facilitate further search
 def parseGoogleAddress(docTuples):
     LABEL_POS = 0
@@ -706,6 +714,27 @@ def parseGoogleAddress(docTuples):
     COUNTRY_POS = 3
     address = docTuples[0].split(",")
     return createGoogleSearchQuery(address[LABEL_POS]), address[LABEL_POS], address[STREET_POS], address[CITY_POS], address[COUNTRY_POS]
+
+
+def geopy_geolocate_by_address_using_nominatum(query):
+    from geopy.geocoders import Nominatim
+    geolocator = Nominatim()
+    location = geolocator.geocode(query)
+    print 'address: ', location.address
+    print 'coordinates:', location.latitude, location.longitude
+    print 'location raw:', location.raw
+    return location
+
+
+# find address by coordinates string that contains latitude and longitude
+def geopy_get_address_by_coordinates_using_nominatum(coordinates):
+    from geopy.geocoders import Nominatim
+    geolocator = Nominatim()
+    address = geolocator.reverse(coordinates)
+    print 'address: ', address.address
+    print 'coordinates:', address.latitude, address.longitude
+    print 'location raw:', address.raw
+    return address
 
 
 # Command line parsing
