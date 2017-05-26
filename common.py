@@ -11,6 +11,7 @@ import sys
 import requests
 import glob
 
+from os import walk
 
 SLASH = '/'
 UNDERSCORE = '_'
@@ -175,6 +176,13 @@ def write_json_file(outputdir, filename, data):
             json.dump(data, out_file, sort_keys=True, indent=4,
                       ensure_ascii=False, encoding='utf-8')
 
+def write_txt_file_from_list(outputdir, filename, itemlist):
+
+    ensure_directory(outputdir)
+    file = open(outputdir + SLASH + filename, "w")
+    file.write("\n".join(itemlist))
+    file.close()
+
 def write_xml_file(outputdir, filename, data):
 
     ensure_directory(outputdir)
@@ -182,6 +190,13 @@ def write_xml_file(outputdir, filename, data):
     file.write(data)
     file.close()
 
+def extract_file_names_from_dir(dirpath):
+
+    file_list = []
+    for (dirpath, dirnames, filenames) in walk(dirpath):
+        file_list.extend(filenames)
+        break
+    return file_list
 
 def read_json_file(inputfile):
 
