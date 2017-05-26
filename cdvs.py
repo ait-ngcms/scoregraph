@@ -106,7 +106,7 @@ OUTPUT in tracefile in root folder:
 
 
 +++ Invocation +++
-$ python cdvs.py -f inputdir
+$ python cdvs.py inputdir -u exract
 """
 
 import argparse
@@ -135,6 +135,11 @@ FEATURES_PATH = "features" # the location of feature files after extract command
 
 # Commands
 EXTRACT = 'extract'
+INDEX_CMD = 'makeIndex'
+INDEX = 'index'
+
+# Definitions
+ALLOWED_EXTENSIONS = ['.jpg']
 
 
 def execute_command_using_cmd(param_list):
@@ -144,71 +149,36 @@ def execute_command_using_cmd(param_list):
     print (out)
     return out
 
+# Example:
+# C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\extract>extract.exe
+# test-files.txt 0 E:\app\europeana-client\image\demo\07101 E:\app\europeana-client\image\annotation
+def extract_cdvs_features(inputdir, image_list_file, dataset_path):
 
-def extract(inputdir, image_list_file, dataset_path):
-
-    exe = CDVS_BIN_FOLDER + "\\" + EXTRACT + "\\" + EXTRACT + ".exe"
-#    param_list = [exe, IMAGE_LIST, MODE, inputdir + "\\" + DATASET_PATH + "\\" + "07101", inputdir + "\\" + ANNOTATION_PATH]
-    param_list = [exe, image_list_file, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH]
-    execute_command_using_cmd(param_list)
-
-
-def exists_cdvs_file(path):
-
-    response_cdvs = False
-    inputfile = glob.glob(path)
-    if(inputfile):
-        #print 'exists:', inputfile
-        response_cdvs = True
-
-    return response_cdvs
+    image_names = [line.rstrip('\n') for line in open(inputdir + "\\" + ANNOTATION_PATH + "\\" + image_list_file)]
+    if not exists_file(dataset_path + "\\" + image_names[0]):
+        exe = CDVS_BIN_FOLDER + "\\" + EXTRACT + "\\" + EXTRACT + ".exe"
+        param_list = [exe, image_list_file, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH]
+        execute_command_using_cmd(param_list)
+    else:
+        print 'CDVS features for dataset ' + dataset_path + ' already exist.'
 
 
-def analyze(inputdir, dirnames):
+def exists_file(path):
 
-    '''
-    # Match to get similarities
-   C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\matc
-    h > match.exe
-    matching - pairs.txt
-    non - matching - pairs.txt
-    0
-    C:\app\europeana - client \
-            demo\07101
-    C:\app\europeana - client\annotation
+    response = False
+    import os.path
+    try:
+        if os.path.isfile(path):
+            response = True
+    except Exception as ex:
+        print ex
 
-    # Make index
-    C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\make
-    Index > makeIndex.exe
-    test - files.txt
-    index
-    0
-    C:\app\europeana - client\demo\07101
-    C:
-    \app\europeana - client\annotation
+    return response
 
-    # Retrieve
-    C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\retr
-    ieve > retrieve.exe
-    index
-    ground - truth - annotations.txt
-    0
-    C:\app\europeana - client\d
-    emo\07101
-    C:\app\europeana - client\annotation - t
-    trace - test.txt
-    '''
 
-    # clean up directories
-#    common.cleanup_tmp_directories(raw_path)
-#    os.remove('/summary_' + mode_normalized + '.csv')
-
-    # correct IDs in CSV
-    #summarize.correct_authors(inputdir + common.SLASH + SUMMARY_AUTHORS_FILE)
-
+def extract(inputdir):
 
     # Generate image path list
-    #if DATASET_PATH in dirnames:
     if IMAGE_DIR in inputdir:
         image_collection_dirs = os.listdir(inputdir + "\\" + DATASET_PATH)
         for image_collection_dir in image_collection_dirs:
@@ -216,25 +186,71 @@ def analyze(inputdir, dirnames):
             dataset_dir = inputdir + "\\" + DATASET_PATH + "\\" + image_collection_dir
             image_files.extend(common.extract_file_names_from_dir(dataset_dir))
             image_list_file = image_collection_dir + "-" + IMAGE_LIST
+            # take only allowed extensions e.g. JPG
+            image_files = filter(None, [image_file if image_file.endswith(tuple(ALLOWED_EXTENSIONS)) else None for image_file in image_files])
             common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, image_list_file, image_files)
             # Extract features
-            extract(inputdir, image_list_file, dataset_dir)
+            extract_cdvs_features(inputdir, image_list_file, dataset_dir)
     else:
         print 'Error. ' +  DATASET_PATH + ' folder is missing.'
 
-    print '+++ CDVS analysis completed +++'
+    print '+++ CDVS feature extraction completed +++'
+
+
+# Example:
+# C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\makeIndex>makeIndex.exe
+# test-files.txt index 0 E:\app\europeana-client\image\demo\07101 E:\app\europeana-client\image\annotation
+def index_images(inputdir, image_list_file, dataset_path):
+
+    image_names = [line.rstrip('\n') for line in open(inputdir + "\\" + ANNOTATION_PATH + "\\" + image_list_file)]
+    if not exists_file(dataset_path + "\\" + INDEX + ".local"):
+        exe = CDVS_BIN_FOLDER + "\\" + INDEX_CMD + "\\" + INDEX_CMD + ".exe"
+        param_list = [exe, image_list_file, INDEX, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH]
+        execute_command_using_cmd(param_list)
+    else:
+        print 'CDVS index files for dataset ' + dataset_path + ' already exist.'
+
+
+def index(inputdir):
+
+    # Generate image path list
+    if IMAGE_DIR in inputdir:
+        image_collection_dirs = os.listdir(inputdir + "\\" + DATASET_PATH)
+        for image_collection_dir in image_collection_dirs:
+            image_files = []
+            dataset_dir = inputdir + "\\" + DATASET_PATH + "\\" + image_collection_dir
+            image_files.extend(common.extract_file_names_from_dir(dataset_dir))
+            image_list_file = image_collection_dir + "-" + IMAGE_LIST
+            # Index images
+            index_images(inputdir, image_list_file, dataset_dir)
+    else:
+        print 'Error. ' +  DATASET_PATH + ' folder is missing.'
+
+    print '+++ CDVS indexing completed +++'
+
+
+def cleanup(inputdir, dirnames):
+
+    # clean up directories
+#    common.cleanup_tmp_directories(raw_path)
+#    os.remove('/summary_' + mode_normalized + '.csv')
+    pass
+
+    print '+++ CDVS cleanup completed +++'
 
 
 # Main analyzing routine
 
-def analyze_images(inputdir):
+def analyze_images(inputdir, use_case):
 
     start = time.time()
-    print("Analyzing '" + inputdir + "' images...")
+    print("Analysing '" + inputdir + "' images...")
 
-    for (dirpath, dirnames, filenames) in walk(inputdir + "\\" + DATASET_PATH):
-        analyze(inputdir, dirnames)
-        break
+    if use_case == EXTRACT:
+        extract(inputdir)
+
+    if use_case == INDEX:
+        index(inputdir)
 
     end = time.time()
     print 'Calculation time:', end - start
@@ -247,10 +263,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
                     description="Finding similar Europeana images using CDVS library.")
     parser.add_argument('inputdir', type=str, default="E:\\app-test\\europeana-client\\image", help="Input image files to be processed")
+    parser.add_argument('-u', '--use_case', type=str, nargs='?',
+                        default="data/mapping.csv",
+                        help="Analysis use cases in given order, such as 'all', 'extract', 'match', 'index', 'retrieve', 'cleanup'")
 
-    #if len(sys.argv) < 1:
-    #    parser.print_help()
-    #    sys.exit(1)
+    if len(sys.argv) < 2:
+        parser.print_help()
+        sys.exit(1)
 
     args = parser.parse_args()
-    analyze_images(args.inputdir)
+    analyze_images(args.inputdir, args.use_case)
