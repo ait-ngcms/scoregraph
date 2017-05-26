@@ -155,7 +155,7 @@ def execute_command_using_cmd(param_list):
 def extract_cdvs_features(inputdir, image_list_file, dataset_path):
 
     image_names = [line.rstrip('\n') for line in open(inputdir + "\\" + ANNOTATION_PATH + "\\" + image_list_file)]
-    if not exists_file(dataset_path + "\\" + image_names[0]):
+    if not exists_file(dataset_path + "\\" + image_names[0].replace(".jpg", ".cdvs")):
         exe = CDVS_BIN_FOLDER + "\\" + EXTRACT + "\\" + EXTRACT + ".exe"
         param_list = [exe, image_list_file, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH]
         execute_command_using_cmd(param_list)
