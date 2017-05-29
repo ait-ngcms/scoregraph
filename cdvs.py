@@ -106,7 +106,11 @@ OUTPUT in tracefile in root folder:
 
 
 +++ Invocation +++
-$ python cdvs.py inputdir -u exract
+
+$ python cdvs.py <inputdir> -u <use case>
+
+Example: E:\app-test\europeana-client\image -u extract
+
 """
 
 import argparse
@@ -124,6 +128,9 @@ import common
 # Folders
 CDVS_BIN_FOLDER = "C:\\git\\mpeg\\CDVS\\CDVS_evaluation_framework\\bin\\all_projects\\bin\\x64_Release\\"
 
+#Files
+RETRIEVAL_GROUND_TRUTH_FILE = 'ground-truth-annotations.txt'
+RETRIEVAL_OUTPUT_FILE = 'retrieval-output.txt'
 
 # CDVS parameters
 MODE = '0' # (0..6) - sets the encoding mode to use
@@ -137,6 +144,7 @@ FEATURES_PATH = "features" # the location of feature files after extract command
 EXTRACT = 'extract'
 INDEX_CMD = 'makeIndex'
 INDEX = 'index'
+RETRIEVE = 'retrieve'
 
 # Definitions
 ALLOWED_EXTENSIONS = ['.jpg']
@@ -145,6 +153,14 @@ ALLOWED_EXTENSIONS = ['.jpg']
 def execute_command_using_cmd(param_list):
 
     proc = subprocess.Popen(param_list, stdout=subprocess.PIPE)
+    (out, err) = proc.communicate()
+    print (out)
+    return out
+
+
+def execute_command_using_cmd_from_dir(param_list, dir):
+
+    proc = subprocess.Popen(param_list, cwd=dir, stdout=subprocess.PIPE)
     (out, err) = proc.communicate()
     print (out)
     return out
@@ -229,6 +245,38 @@ def index(inputdir):
     print '+++ CDVS indexing completed +++'
 
 
+def retrieve(inputdir):
+
+    # Generate image path list
+    if IMAGE_DIR in inputdir:
+        image_collection_dirs = os.listdir(inputdir + "\\" + DATASET_PATH)
+        for image_collection_dir in image_collection_dirs:
+            dataset_dir = inputdir + "\\" + DATASET_PATH + "\\" + image_collection_dir
+            # Retrieve similar images
+            retrieve_similar_images(inputdir, dataset_dir)
+            break
+    else:
+        print 'Error. ' +  DATASET_PATH + ' folder is missing.'
+
+    print '+++ CDVS retrieval completed +++'
+
+
+# Example:
+# C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\retrieve>retrieve.exe
+# index ground-truth-annotations.txt 0 C:\app\europeana-client\image\demo\07101 C:\app\europeana-client\image\annotation
+# -t retrieval-output.txt
+def retrieve_similar_images(inputdir, dataset_path):
+
+    # change to the retrieve command directory
+    command_path = CDVS_BIN_FOLDER + "\\" + RETRIEVE
+    os.chdir(command_path)
+
+    # execute retrieve query
+    exe = RETRIEVE + ".exe"
+    param_list = [exe, INDEX, RETRIEVAL_GROUND_TRUTH_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t", "retrieval-output.txt"]
+    execute_command_using_cmd_from_dir(param_list, command_path)
+
+
 def cleanup(inputdir, dirnames):
 
     # clean up directories
@@ -251,6 +299,9 @@ def analyze_images(inputdir, use_case):
 
     if use_case == INDEX:
         index(inputdir)
+
+    if use_case == RETRIEVE:
+        retrieve(inputdir)
 
     end = time.time()
     print 'Calculation time:', end - start
