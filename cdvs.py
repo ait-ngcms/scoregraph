@@ -265,16 +265,12 @@ def retrieve(inputdir):
 # C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\retrieve>retrieve.exe
 # index ground-truth-annotations.txt 0 C:\app\europeana-client\image\demo\07101 C:\app\europeana-client\image\annotation
 # -t retrieval-output.txt
+# output is stored in output file in directory where current python script is located
 def retrieve_similar_images(inputdir, dataset_path):
 
-    # change to the retrieve command directory
-    command_path = CDVS_BIN_FOLDER + "\\" + RETRIEVE
-    os.chdir(command_path)
-
-    # execute retrieve query
-    exe = RETRIEVE + ".exe"
+    exe = CDVS_BIN_FOLDER + "\\" + RETRIEVE + "\\"  + RETRIEVE + ".exe"
     param_list = [exe, INDEX, RETRIEVAL_GROUND_TRUTH_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t", "retrieval-output.txt"]
-    execute_command_using_cmd_from_dir(param_list, command_path)
+    execute_command_using_cmd(param_list)
 
 
 def cleanup(inputdir, dirnames):
