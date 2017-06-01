@@ -61,6 +61,11 @@ h is the default)
   -h -help: show help
 
 OUTPUT in stdout: similarity scores
+e.g.
+index, nmatched, inliers,    weight,  w-thresh,  g-thresh,   g-score,     score, [bounding box]
+    1       300      299 299.000000   1.575000   7.235000 279.402283   1.000000
+    2        67        0   0.000000   1.575000   7.235000   9.250980   1.000000
+    3        61        0   0.000000   1.575000   7.235000   9.039987   1.000000
 
 
 CDVS database index generation module.
@@ -102,7 +107,7 @@ ault)
          it must be in same format as ground truth data.
   -help or -h: help
 
-OUTPUT in tracefile in root folder:
+OUTPUT in tracefile in root folder: e.g. for O_102.jpg it is O_344.jpg O_393.jpg O_226.jpg O_157.jpg O_91.jpg
 
 
 +++ Invocation +++
