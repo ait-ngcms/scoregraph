@@ -131,6 +131,9 @@ CDVS_BIN_FOLDER = "C:\\git\\mpeg\\CDVS\\CDVS_evaluation_framework\\bin\\all_proj
 #Files
 RETRIEVAL_GROUND_TRUTH_FILE = 'ground-truth-annotations.txt'
 RETRIEVAL_OUTPUT_FILE = 'retrieval-output.txt'
+MATCH_OUTPUT_FILE = 'match-output.txt'
+MATCHING_PAIRS_FILE = 'matching-pairs.txt'
+NON_MATCHING_PAIRS_FILE = 'non-matching-pairs.txt'
 
 # CDVS parameters
 MODE = '0' # (0..6) - sets the encoding mode to use
@@ -145,6 +148,7 @@ EXTRACT = 'extract'
 INDEX_CMD = 'makeIndex'
 INDEX = 'index'
 RETRIEVE = 'retrieve'
+MATCH = 'match'
 
 # Definitions
 ALLOWED_EXTENSIONS = ['.jpg']
@@ -254,11 +258,30 @@ def retrieve(inputdir):
             dataset_dir = inputdir + "\\" + DATASET_PATH + "\\" + image_collection_dir
             # Retrieve similar images
             retrieve_similar_images(inputdir, dataset_dir)
-            break
     else:
         print 'Error. ' +  DATASET_PATH + ' folder is missing.'
 
     print '+++ CDVS retrieval completed +++'
+
+
+def match(inputdir):
+
+    # Generate image path list
+    if IMAGE_DIR in inputdir:
+        image_collection_dirs = os.listdir(inputdir + "\\" + DATASET_PATH)
+        for image_collection_dir in image_collection_dirs:
+            dataset_dir = inputdir + "\\" + DATASET_PATH + "\\" + image_collection_dir
+            # Match images
+            match_images(inputdir, dataset_dir)
+    else:
+        print 'Error. ' +  DATASET_PATH + ' folder is missing.'
+
+    print '+++ CDVS retrieval completed +++'
+
+
+def get_collection_id_from_path(dataset_path):
+
+    return dataset_path.split("\\")[-1]
 
 
 # Example:
@@ -269,7 +292,36 @@ def retrieve(inputdir):
 def retrieve_similar_images(inputdir, dataset_path):
 
     exe = CDVS_BIN_FOLDER + "\\" + RETRIEVE + "\\"  + RETRIEVE + ".exe"
-    param_list = [exe, INDEX, RETRIEVAL_GROUND_TRUTH_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t", "retrieval-output.txt"]
+    output_file = get_collection_id_from_path(dataset_path) + "-" + RETRIEVAL_OUTPUT_FILE
+    param_list = [exe, INDEX, RETRIEVAL_GROUND_TRUTH_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t",
+                  output_file]
+    execute_command_using_cmd(param_list)
+
+
+# Example:
+# C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\match>match.exe
+# matching-pairs.txt non-matching-pairs.txt 0 C:\app\europeana-client\demo\07101 C:\app\europeana-client\annotation
+# -t match-output.txt
+def match_images(inputdir, dataset_path):
+
+    # read outputs of retrieve command
+    retrieval_output_file = get_collection_id_from_path(dataset_path) + "-" + RETRIEVAL_OUTPUT_FILE
+    lines = [line.rstrip('\n') for line in open(retrieval_output_file)]
+    images = lines[0].split(" ")
+    main_image = images[0]
+    images = [main_image + " " + image for image in images]
+
+    # generate matching pairs file
+    common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, MATCHING_PAIRS_FILE, images[:-1])
+
+    # generate non matching pairs file
+    common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, NON_MATCHING_PAIRS_FILE, images[:1])
+
+    matching_output_file = get_collection_id_from_path(dataset_path) + "-" + MATCH_OUTPUT_FILE
+
+    exe = CDVS_BIN_FOLDER + "\\" + MATCH + "\\"  + MATCH + ".exe"
+    param_list = [exe, MATCHING_PAIRS_FILE, NON_MATCHING_PAIRS_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t",
+                  matching_output_file]
     execute_command_using_cmd(param_list)
 
 
@@ -298,6 +350,9 @@ def analyze_images(inputdir, use_case):
 
     if use_case == RETRIEVE:
         retrieve(inputdir)
+
+    if use_case == MATCH:
+        match(inputdir)
 
     end = time.time()
     print 'Calculation time:', end - start
