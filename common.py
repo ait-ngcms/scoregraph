@@ -183,6 +183,13 @@ def write_txt_file_from_list(outputdir, filename, itemlist):
     file.write("\n".join(itemlist))
     file.close()
 
+def write_txt_file_from_string(outputdir, filename, data):
+
+    ensure_directory(outputdir)
+    file = open(outputdir + SLASH + filename, "w")
+    file.write(data)
+    file.close()
+
 def write_xml_file(outputdir, filename, data):
 
     ensure_directory(outputdir)

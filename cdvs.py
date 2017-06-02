@@ -139,6 +139,7 @@ RETRIEVAL_OUTPUT_FILE = 'retrieval-output.txt'
 MATCH_OUTPUT_FILE = 'match-output.txt'
 MATCHING_PAIRS_FILE = 'matching-pairs.txt'
 NON_MATCHING_PAIRS_FILE = 'non-matching-pairs.txt'
+SEARCH_RESULT_FILE = 'search-result-file.html'
 
 # CDVS parameters
 MODE = '0' # (0..6) - sets the encoding mode to use
@@ -269,6 +270,18 @@ def retrieve(inputdir):
     print '+++ CDVS retrieval completed +++'
 
 
+def check_query_file_is_in_folder(dataset_dir, inputfile):
+
+    res = False
+    if exists_file(inputfile):
+        main_image = extract_image_list_from_input_file(inputfile)[0]
+        if main_image in common.extract_file_names_from_dir(dataset_dir):
+            res = True
+    else:
+        print 'Input file does not exist. Matching requires existing of file:', inputfile
+    return res
+
+
 def match(inputdir):
 
     # Generate image path list
@@ -284,6 +297,65 @@ def match(inputdir):
     print '+++ CDVS retrieval completed +++'
 
 
+def extract_image_list_from_input_file(filepath):
+
+    lines = [line.rstrip('\n') for line in open(filepath)]
+    images = lines[0].split(" ")
+    return images
+
+
+def extract_score_from_match_output_file(match_output_file, images):
+
+    FEATURES_NUM_POS = 1
+    GSCORE_POS = 6
+    SCORE_POS = 7
+
+    res = {}
+
+    lines = [line.rstrip('\n') for line in open(match_output_file)][2:]
+    for idx, line in enumerate(lines):
+        values = line.split()
+        features_num = values[FEATURES_NUM_POS]
+        gscore = values[GSCORE_POS]
+        score = values[SCORE_POS]
+        if score.startswith("1.0"):
+            res[images[idx]] = [features_num, gscore]
+        else:
+            break
+
+    return res
+
+
+def generate_html_view(inputdir, dataset_path, score_dict):
+
+    main_image = score_dict.keys()[0]
+
+    html_content = ''
+
+    # TODO sorting dict
+
+    html_prefix = ("<html>\n\t<head>\n\t<title> CDVS - Image Retrieval Demo </title>\n\t</head>\n\t<div class=\"wrapper\" style=\"min-height: 900px;\">\n\t"
+    + "<table>\n\t<tr>\n\t<td>\n\t<table>\n\t<tr>\n\t<td>\n\t<div style=\"display: none;\" id=\"advSearch\" align=\"center\"><img id=\"queryImage\" src=\"images/"
+    + main_image + "\" alt = \"\" height=\"64\" align=\"middle\"></div>\n\t</td>\n\t</tr>\n\t</table>\n\t</td>\n\t</tr>\n\t</table>\n\t"
+    + "<h1>CDVS similarity search results for image: " + main_image.split()[0] + "</h1>\n\t"
+    + "<div class=\"content\" align=\"center\">\n\t<table border=\"0\" align=\"center\">\n\t<tr valign=top>\n\t"
+    + "<td valign=\"top\">\n\t")
+
+    for key, value in score_dict.iteritems():
+
+        html_content = (html_content + "<div id=\"result_0\" style=\"padding: 5px;\">\n\t<div>\n\t<div>\n\t<a href=\"\" title=\"search similar images\">"
+        + key + "</a>&nbsp;"
+        + "<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/" + key.split()[1] + "\" title=\"score: " + value[0] + ", " + value[1] + "\"/>"
+        + "<br></div>\n\t</div>\n\t</div>\n\t</td>\n\t")
+
+    html_postfix = "</tr>\n\t</table>\n\t</div>\n\t</body>\n\t</html>"
+
+    data = html_prefix + html_content + html_postfix
+
+    # create HTML file
+    common.write_txt_file_from_string(inputdir + "\\" + ANNOTATION_PATH, SEARCH_RESULT_FILE, data)
+
+
 def get_collection_id_from_path(dataset_path):
 
     return dataset_path.split("\\")[-1]
@@ -296,11 +368,12 @@ def get_collection_id_from_path(dataset_path):
 # output is stored in output file in directory where current python script is located
 def retrieve_similar_images(inputdir, dataset_path):
 
-    exe = CDVS_BIN_FOLDER + "\\" + RETRIEVE + "\\"  + RETRIEVE + ".exe"
-    output_file = get_collection_id_from_path(dataset_path) + "-" + RETRIEVAL_OUTPUT_FILE
-    param_list = [exe, INDEX, RETRIEVAL_GROUND_TRUTH_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t",
-                  output_file]
-    execute_command_using_cmd(param_list)
+    if check_query_file_is_in_folder(dataset_path, RETRIEVAL_GROUND_TRUTH_FILE):
+        output_file = get_collection_id_from_path(dataset_path) + "-" + RETRIEVAL_OUTPUT_FILE
+        exe = CDVS_BIN_FOLDER + "\\" + RETRIEVE + "\\" + RETRIEVE + ".exe"
+        param_list = [exe, INDEX, RETRIEVAL_GROUND_TRUTH_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t",
+                      output_file]
+        execute_command_using_cmd(param_list)
 
 
 # Example:
@@ -311,30 +384,32 @@ def match_images(inputdir, dataset_path):
 
     # read outputs of retrieve command
     retrieval_output_file = get_collection_id_from_path(dataset_path) + "-" + RETRIEVAL_OUTPUT_FILE
-    lines = [line.rstrip('\n') for line in open(retrieval_output_file)]
-    images = lines[0].split(" ")
-    main_image = images[0]
-    images = [main_image + " " + image for image in images]
+    if check_query_file_is_in_folder(dataset_path, retrieval_output_file):
 
-    # generate matching pairs file
-    common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, MATCHING_PAIRS_FILE, images[:-1])
+        images = extract_image_list_from_input_file(retrieval_output_file)
+        main_image = images[0]
+        images = [main_image + " " + image for image in images]
 
-    # generate non matching pairs file
-    common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, NON_MATCHING_PAIRS_FILE, images[:1])
+        # generate matching pairs file
+        common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, MATCHING_PAIRS_FILE, images[:-1])
 
-    matching_output_file = get_collection_id_from_path(dataset_path) + "-" + MATCH_OUTPUT_FILE
+        # generate non matching pairs file
+        common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, NON_MATCHING_PAIRS_FILE, images[:1])
 
-    exe = CDVS_BIN_FOLDER + "\\" + MATCH + "\\"  + MATCH + ".exe"
-    param_list = [exe, MATCHING_PAIRS_FILE, NON_MATCHING_PAIRS_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t",
-                  matching_output_file]
-    execute_command_using_cmd(param_list)
+        matching_output_file = get_collection_id_from_path(dataset_path) + "-" + MATCH_OUTPUT_FILE
+
+        exe = CDVS_BIN_FOLDER + "\\" + MATCH + "\\"  + MATCH + ".exe"
+        param_list = [exe, MATCHING_PAIRS_FILE, NON_MATCHING_PAIRS_FILE, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH, "-t",
+                      matching_output_file]
+        execute_command_using_cmd(param_list)
+
+        score_dict = extract_score_from_match_output_file(matching_output_file, images)
+        generate_html_view(inputdir, dataset_path, score_dict)
 
 
 def cleanup(inputdir, dirnames):
 
     # clean up directories
-#    common.cleanup_tmp_directories(raw_path)
-#    os.remove('/summary_' + mode_normalized + '.csv')
     pass
 
     print '+++ CDVS cleanup completed +++'
