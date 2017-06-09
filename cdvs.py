@@ -310,7 +310,8 @@ def extract_score_from_match_output_file(match_output_file, images):
     GSCORE_POS = 6
     SCORE_POS = 7
 
-    res = {}
+#    res = {}
+    res = []
 
     lines = [line.rstrip('\n') for line in open(match_output_file)][2:]
     for idx, line in enumerate(lines):
@@ -319,7 +320,8 @@ def extract_score_from_match_output_file(match_output_file, images):
         gscore = values[GSCORE_POS]
         score = values[SCORE_POS]
         if score.startswith("1.0"):
-            res[images[idx]] = [features_num, gscore]
+#            res[images[idx]] = [features_num, gscore]
+            res.append([idx, images[idx], features_num, gscore])
         else:
             break
 
@@ -328,7 +330,10 @@ def extract_score_from_match_output_file(match_output_file, images):
 
 def generate_html_view(inputdir, dataset_path, score_dict):
 
-    main_image = score_dict.keys()[0]
+
+    IMAGE_PAIR_POS = 1
+#    main_image = score_dict.keys()[0]
+    main_image = score_dict[0][IMAGE_PAIR_POS].split()[0]
 
     html_content = ''
 
@@ -338,17 +343,37 @@ def generate_html_view(inputdir, dataset_path, score_dict):
     + "<table>\n\t<tr>\n\t<td>\n\t<table>\n\t<tr>\n\t<td>\n\t<div style=\"display: none;\" id=\"advSearch\" align=\"center\"><img id=\"queryImage\" src=\"images/"
     + main_image + "\" alt = \"\" height=\"64\" align=\"middle\"></div>\n\t</td>\n\t</tr>\n\t</table>\n\t</td>\n\t</tr>\n\t</table>\n\t"
     + "<h1>CDVS similarity search results for image: " + main_image.split()[0] + "</h1>\n\t"
-    + "<div class=\"content\" align=\"center\">\n\t<table border=\"0\" align=\"center\">\n\t<tr valign=top>\n\t"
-    + "<td valign=\"top\">\n\t")
+    + "<div class=\"content\" align=\"center\">\n\t<table border=\"0\" align=\"center\">")
 
-    for key, value in score_dict.iteritems():
 
-        html_content = (html_content + "<div id=\"result_0\" style=\"padding: 5px;\">\n\t<div>\n\t<div>\n\t<a href=\"\" title=\"search similar images\">"
-        + key + "</a>&nbsp;"
-        + "<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/" + key.split()[1] + "\" title=\"score: " + value[0] + ", " + value[1] + "\"/>"
-        + "<br></div>\n\t</div>\n\t</div>\n\t</td>\n\t")
+    COLUMN_COUNT = 4
+#    for key, value in score_dict.iteritems():
+    for idx, score_obj in enumerate(score_dict):
 
-    html_postfix = "</tr>\n\t</table>\n\t</div>\n\t</body>\n\t</html>"
+        INDEX_POS = 1
+        FEATURES_NUM_POS = 2
+        G_SCORE_POS = 3
+        image_pair = score_obj[IMAGE_PAIR_POS].split()
+        key_image = image_pair[0]
+        related_image = image_pair[1]
+        features_num = score_obj[FEATURES_NUM_POS]
+        g_score = score_obj[G_SCORE_POS]
+
+        row_begin = ""
+        row_end = ""
+        col_count = idx%COLUMN_COUNT
+        if col_count == 0:
+            row_begin = "\n\t\n\t\t<tr valign=top>\n\t"
+        if col_count == COLUMN_COUNT-1:
+            row_end = "\t</tr>"
+        html_content = (html_content + row_begin + "\t\t<td valign=\"top\">\n\t" + "\t\t\t<div id=\"result_" + score_obj[INDEX_POS]
+        + "\" style=\"padding: 5px;\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<div>\n\t\t\t\t\t\t\t<a href=\"\" title=\"search similar images\">"
+        + related_image + "</a>&nbsp;score: " + str(round(float(g_score)/float(features_num),3)) + " (features=" + features_num + ", g-score=" + g_score + ")"
+        + "\n\t\t\t\t\t\t\t\t<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/"
+        + related_image + "\" title=\"score: " + features_num + ", " + g_score + "\"/>"
+        + "<br>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</td>\n\t" + row_end)
+
+    html_postfix = "\n\t</table>\n\t</div>\n\t</body>\n\t</html>"
 
     data = html_prefix + html_content + html_postfix
 
