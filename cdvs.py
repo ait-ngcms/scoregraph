@@ -115,6 +115,7 @@ OUTPUT in tracefile in root folder: e.g. for O_102.jpg it is O_344.jpg O_393.jpg
 $ python cdvs.py <inputdir> -u <use case>
 
 Example: E:\app-test\europeana-client\image -u extract
+E:\app-test\testcollection -u all-test -q O_446.jpg
 
 """
 
@@ -128,6 +129,8 @@ import time
 from os import walk
 
 import common
+
+from operator import itemgetter
 
 
 # Folders
@@ -150,6 +153,7 @@ ANNOTATION_PATH = "annotation" # the root dir of the CDVS annotation files
 FEATURES_PATH = "features" # the location of feature files after extract command execution with extension DB.cdvs
 
 # Commands
+ALL_TEST = 'all-test' # test the whole extract-index-match-htmlview process
 EXTRACT = 'extract'
 INDEX_CMD = 'makeIndex'
 INDEX = 'index'
@@ -178,12 +182,12 @@ def execute_command_using_cmd_from_dir(param_list, dir):
 # Example:
 # C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\extract>extract.exe
 # test-files.txt 0 E:\app\europeana-client\image\demo\07101 E:\app\europeana-client\image\annotation
-def extract_cdvs_features(inputdir, image_list_file, dataset_path):
+def extract_cdvs_features(annotation_dir, image_list_file, dataset_path):
 
-    image_names = [line.rstrip('\n') for line in open(inputdir + "\\" + ANNOTATION_PATH + "\\" + image_list_file)]
+    image_names = [line.rstrip('\n') for line in open(annotation_dir + "\\" + image_list_file)]
     if not exists_file(dataset_path + "\\" + image_names[0].replace(".jpg", ".cdvs")):
         exe = CDVS_BIN_FOLDER + "\\" + EXTRACT + "\\" + EXTRACT + ".exe"
-        param_list = [exe, image_list_file, MODE, dataset_path, inputdir + "\\" + ANNOTATION_PATH]
+        param_list = [exe, image_list_file, MODE, dataset_path, annotation_dir]
         execute_command_using_cmd(param_list)
     else:
         print 'CDVS features for dataset ' + dataset_path + ' already exist.'
@@ -208,17 +212,33 @@ def extract(inputdir):
     if IMAGE_DIR in inputdir:
         image_collection_dirs = os.listdir(inputdir + "\\" + DATASET_PATH)
         for image_collection_dir in image_collection_dirs:
-            image_files = []
+            #image_files = []
             dataset_dir = inputdir + "\\" + DATASET_PATH + "\\" + image_collection_dir
-            image_files.extend(common.extract_file_names_from_dir(dataset_dir))
+            image_files = get_allowed_image_file_names_from_dir(dataset_dir)
+            #image_files.extend(common.extract_file_names_from_dir(dataset_dir))
             image_list_file = image_collection_dir + "-" + IMAGE_LIST
             # take only allowed extensions e.g. JPG
-            image_files = filter(None, [image_file if image_file.endswith(tuple(ALLOWED_EXTENSIONS)) else None for image_file in image_files])
+            #image_files = filter(None, [image_file if image_file.endswith(tuple(ALLOWED_EXTENSIONS)) else None for image_file in image_files])
             common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, image_list_file, image_files)
             # Extract features
-            extract_cdvs_features(inputdir, image_list_file, dataset_dir)
+            extract_cdvs_features(inputdir + "\\" + ANNOTATION_PATH, image_list_file, dataset_dir)
     else:
         print 'Error. ' +  DATASET_PATH + ' folder is missing.'
+
+    print '+++ CDVS feature extraction completed +++'
+
+
+def extract_collection(inputdir):
+
+    # Generate image path list
+    image_files = []
+    image_files.extend(common.extract_file_names_from_dir(inputdir))
+    image_list_file = os.path.basename(os.path.normpath(inputdir)) + "-" + IMAGE_LIST
+    # take only allowed extensions e.g. JPG
+    image_files = filter(None, [image_file if image_file.endswith(tuple(ALLOWED_EXTENSIONS)) else None for image_file in image_files])
+    common.write_txt_file_from_list(inputdir, image_list_file, image_files)
+    # Extract features
+    extract_cdvs_features(inputdir, image_list_file, inputdir)
 
     print '+++ CDVS feature extraction completed +++'
 
@@ -294,7 +314,17 @@ def match(inputdir):
     else:
         print 'Error. ' +  DATASET_PATH + ' folder is missing.'
 
-    print '+++ CDVS retrieval completed +++'
+    print '+++ CDVS match completed +++'
+
+
+def all_test(inputdir, query):
+
+    print '+++ CDVS all test started +++'
+
+    extract_collection(inputdir)
+    match_collection(inputdir, query)
+
+    print '+++ CDVS all test completed +++'
 
 
 def extract_image_list_from_input_file(filepath):
@@ -310,7 +340,6 @@ def extract_score_from_match_output_file(match_output_file, images):
     GSCORE_POS = 6
     SCORE_POS = 7
 
-#    res = {}
     res = []
 
     lines = [line.rstrip('\n') for line in open(match_output_file)][2:]
@@ -319,45 +348,43 @@ def extract_score_from_match_output_file(match_output_file, images):
         features_num = values[FEATURES_NUM_POS]
         gscore = values[GSCORE_POS]
         score = values[SCORE_POS]
+        calculated_score = str(round(float(gscore)/float(features_num),3))
         if score.startswith("1.0"):
-#            res[images[idx]] = [features_num, gscore]
-            res.append([idx, images[idx], features_num, gscore])
-        else:
-            break
+            res.append([idx, images[idx], features_num, gscore, calculated_score])
+
+    res = sorted(res, key=lambda x:float(x[4]), reverse=True)
 
     return res
 
 
-def generate_html_view(inputdir, dataset_path, score_dict):
+def generate_html_view(dataset_path, annotation_path, score_dict):
 
 
     IMAGE_PAIR_POS = 1
-#    main_image = score_dict.keys()[0]
     main_image = score_dict[0][IMAGE_PAIR_POS].split()[0]
 
     html_content = ''
 
-    # TODO sorting dict
-
     html_prefix = ("<html>\n\t<head>\n\t<title> CDVS - Image Retrieval Demo </title>\n\t</head>\n\t<div class=\"wrapper\" style=\"min-height: 900px;\">\n\t"
     + "<table>\n\t<tr>\n\t<td>\n\t<table>\n\t<tr>\n\t<td>\n\t<div style=\"display: none;\" id=\"advSearch\" align=\"center\"><img id=\"queryImage\" src=\"images/"
     + main_image + "\" alt = \"\" height=\"64\" align=\"middle\"></div>\n\t</td>\n\t</tr>\n\t</table>\n\t</td>\n\t</tr>\n\t</table>\n\t"
-    + "<h1>CDVS similarity search results for image: " + main_image.split()[0] + "</h1>\n\t"
+    + "<h1>CDVS similarity search results (" + str(len(score_dict)) + ") for image: " + main_image.split()[0] + "</h1>\n\t"
     + "<div class=\"content\" align=\"center\">\n\t<table border=\"0\" align=\"center\">")
 
 
     COLUMN_COUNT = 4
-#    for key, value in score_dict.iteritems():
     for idx, score_obj in enumerate(score_dict):
 
         INDEX_POS = 1
         FEATURES_NUM_POS = 2
         G_SCORE_POS = 3
+        CALCULATED_SCORE = 4
         image_pair = score_obj[IMAGE_PAIR_POS].split()
         key_image = image_pair[0]
         related_image = image_pair[1]
         features_num = score_obj[FEATURES_NUM_POS]
         g_score = score_obj[G_SCORE_POS]
+        calculated_score = score_obj[CALCULATED_SCORE]
 
         row_begin = ""
         row_end = ""
@@ -368,7 +395,7 @@ def generate_html_view(inputdir, dataset_path, score_dict):
             row_end = "\t</tr>"
         html_content = (html_content + row_begin + "\t\t<td valign=\"top\">\n\t" + "\t\t\t<div id=\"result_" + score_obj[INDEX_POS]
         + "\" style=\"padding: 5px;\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<div>\n\t\t\t\t\t\t\t<a href=\"\" title=\"search similar images\">"
-        + related_image + "</a>&nbsp;score: " + str(round(float(g_score)/float(features_num),3)) + " (features=" + features_num + ", g-score=" + g_score + ")"
+        + related_image + "</a>&nbsp;score: " + calculated_score + " (features=" + features_num + ", g-score=" + g_score + ")"
         + "\n\t\t\t\t\t\t\t\t<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/"
         + related_image + "\" title=\"score: " + features_num + ", " + g_score + "\"/>"
         + "<br>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</td>\n\t" + row_end)
@@ -378,7 +405,7 @@ def generate_html_view(inputdir, dataset_path, score_dict):
     data = html_prefix + html_content + html_postfix
 
     # create HTML file
-    common.write_txt_file_from_string(inputdir + "\\" + ANNOTATION_PATH, SEARCH_RESULT_FILE, data)
+    common.write_txt_file_from_string(annotation_path, main_image.replace(".", "-") + "-" + SEARCH_RESULT_FILE, data)
 
 
 def get_collection_id_from_path(dataset_path):
@@ -429,7 +456,48 @@ def match_images(inputdir, dataset_path):
         execute_command_using_cmd(param_list)
 
         score_dict = extract_score_from_match_output_file(matching_output_file, images)
-        generate_html_view(inputdir, dataset_path, score_dict)
+        generate_html_view(dataset_path, inputdir + "\\" + ANNOTATION_PATH, score_dict)
+
+
+def get_allowed_image_file_names_from_dir(inputdir):
+
+    # read image names from input directory
+    images = []
+    images.extend(common.extract_file_names_from_dir(inputdir))
+    # take only allowed extensions e.g. JPG
+    images = filter(None,
+                         [image_file if image_file.endswith(tuple(ALLOWED_EXTENSIONS)) else None for image_file in
+                          images])
+    return images
+
+
+def match_collection(inputdir, query):
+
+    #images = []
+    #for file in os.listdir(inputdir):
+    #    for extension in ALLOWED_EXTENSIONS:
+    #        if file.endswith(extension):
+    #            images.append(file)
+
+    images = get_allowed_image_file_names_from_dir(inputdir)
+
+    images = [query + " " + image for image in images]
+
+    # generate matching pairs file
+    common.write_txt_file_from_list(inputdir, MATCHING_PAIRS_FILE, images)
+
+    # generate non matching pairs file
+    common.write_txt_file_from_list(inputdir, NON_MATCHING_PAIRS_FILE, query)
+
+    matching_output_file = query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
+
+    exe = CDVS_BIN_FOLDER + "\\" + MATCH + "\\"  + MATCH + ".exe"
+    param_list = [exe, MATCHING_PAIRS_FILE, NON_MATCHING_PAIRS_FILE, MODE, inputdir, inputdir, "-t",
+                  matching_output_file]
+    execute_command_using_cmd(param_list)
+
+    score_dict = extract_score_from_match_output_file(matching_output_file, images)
+    generate_html_view(inputdir, inputdir, score_dict)
 
 
 def cleanup(inputdir, dirnames):
@@ -442,10 +510,13 @@ def cleanup(inputdir, dirnames):
 
 # Main analyzing routine
 
-def analyze_images(inputdir, use_case):
+def analyze_images(inputdir, use_case, query):
 
     start = time.time()
     print("Analysing '" + inputdir + "' images...")
+
+    if use_case == ALL_TEST:
+        all_test(inputdir, query)
 
     if use_case == EXTRACT:
         extract(inputdir)
@@ -471,12 +542,12 @@ if __name__ == '__main__':
                     description="Finding similar Europeana images using CDVS library.")
     parser.add_argument('inputdir', type=str, default="E:\\app-test\\europeana-client\\image", help="Input image files to be processed")
     parser.add_argument('-u', '--use_case', type=str, nargs='?',
-                        default="data/mapping.csv",
-                        help="Analysis use cases in given order, such as 'all', 'extract', 'match', 'index', 'retrieve', 'cleanup'")
+                        help="Analysis use cases in given order, such as 'all', 'all-test', 'extract', 'match', 'index', 'retrieve', 'cleanup'")
+    parser.add_argument('-q', '--query', type=str, default="", help="Query image file name")
 
     if len(sys.argv) < 2:
         parser.print_help()
         sys.exit(1)
 
     args = parser.parse_args()
-    analyze_images(args.inputdir, args.use_case)
+    analyze_images(args.inputdir, args.use_case, args.query)
