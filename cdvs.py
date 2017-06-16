@@ -125,12 +125,7 @@ import sys
 import subprocess
 import time
 
-# directory structure
-from os import walk
-
 import common
-
-from operator import itemgetter
 
 
 # Folders
@@ -154,6 +149,7 @@ FEATURES_PATH = "features" # the location of feature files after extract command
 
 # Commands
 ALL_TEST = 'all-test' # test the whole extract-index-match-htmlview process
+EXTRACT_MATCH_COLLECTION = 'extract-match-collection' # test extract and match collection for a query image
 EXTRACT = 'extract'
 INDEX_CMD = 'makeIndex'
 INDEX = 'index'
@@ -212,13 +208,9 @@ def extract(inputdir):
     if IMAGE_DIR in inputdir:
         image_collection_dirs = os.listdir(inputdir + "\\" + DATASET_PATH)
         for image_collection_dir in image_collection_dirs:
-            #image_files = []
             dataset_dir = inputdir + "\\" + DATASET_PATH + "\\" + image_collection_dir
             image_files = get_allowed_image_file_names_from_dir(dataset_dir)
-            #image_files.extend(common.extract_file_names_from_dir(dataset_dir))
             image_list_file = image_collection_dir + "-" + IMAGE_LIST
-            # take only allowed extensions e.g. JPG
-            #image_files = filter(None, [image_file if image_file.endswith(tuple(ALLOWED_EXTENSIONS)) else None for image_file in image_files])
             common.write_txt_file_from_list(inputdir + "\\" + ANNOTATION_PATH, image_list_file, image_files)
             # Extract features
             extract_cdvs_features(inputdir + "\\" + ANNOTATION_PATH, image_list_file, dataset_dir)
@@ -241,6 +233,8 @@ def extract_collection(inputdir):
     extract_cdvs_features(inputdir, image_list_file, inputdir)
 
     print '+++ CDVS feature extraction completed +++'
+
+    return image_files
 
 
 # Example:
@@ -317,14 +311,26 @@ def match(inputdir):
     print '+++ CDVS match completed +++'
 
 
-def all_test(inputdir, query):
+def all_test(inputdir):
 
     print '+++ CDVS all test started +++'
+
+    image_files = extract_collection(inputdir)
+
+    for query in image_files:
+        match_collection(inputdir, query)
+
+    print '+++ CDVS all test completed +++'
+
+
+def extract_match_collection(inputdir, query):
+
+    print '+++ CDVS extract and match collection test started +++'
 
     extract_collection(inputdir)
     match_collection(inputdir, query)
 
-    print '+++ CDVS all test completed +++'
+    print '+++ CDVS extract and match collection test completed +++'
 
 
 def extract_image_list_from_input_file(filepath):
@@ -340,9 +346,12 @@ def extract_score_from_match_output_file(match_output_file, images):
     GSCORE_POS = 6
     SCORE_POS = 7
 
+    SORT_BY_GSCORE = 3
+    SORT_BY_CALCULATED_SCORE = 4
+
     res = []
 
-    lines = [line.rstrip('\n') for line in open(match_output_file)][2:]
+    lines = [line.rstrip('\n') for line in open(match_output_file)][2:] # remove headers - first two lines
     for idx, line in enumerate(lines):
         values = line.split()
         features_num = values[FEATURES_NUM_POS]
@@ -352,7 +361,7 @@ def extract_score_from_match_output_file(match_output_file, images):
         if score.startswith("1.0"):
             res.append([idx, images[idx], features_num, gscore, calculated_score])
 
-    res = sorted(res, key=lambda x:float(x[4]), reverse=True)
+    res = sorted(res, key=lambda x:float(x[SORT_BY_GSCORE]), reverse=True)
 
     return res
 
@@ -395,7 +404,8 @@ def generate_html_view(dataset_path, annotation_path, score_dict):
             row_end = "\t</tr>"
         html_content = (html_content + row_begin + "\t\t<td valign=\"top\">\n\t" + "\t\t\t<div id=\"result_" + score_obj[INDEX_POS]
         + "\" style=\"padding: 5px;\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<div>\n\t\t\t\t\t\t\t<a href=\"\" title=\"search similar images\">"
-        + related_image + "</a>&nbsp;score: " + calculated_score + " (features=" + features_num + ", g-score=" + g_score + ")"
+#        + related_image + "</a>&nbsp;score: " + calculated_score + " (features=" + features_num + ", g-score=" + g_score + ")"
+        + related_image + "</a>&nbsp;(features=" + features_num + ", g-score=" + g_score + ")"
         + "\n\t\t\t\t\t\t\t\t<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/"
         + related_image + "\" title=\"score: " + features_num + ", " + g_score + "\"/>"
         + "<br>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</td>\n\t" + row_end)
@@ -473,12 +483,6 @@ def get_allowed_image_file_names_from_dir(inputdir):
 
 def match_collection(inputdir, query):
 
-    #images = []
-    #for file in os.listdir(inputdir):
-    #    for extension in ALLOWED_EXTENSIONS:
-    #        if file.endswith(extension):
-    #            images.append(file)
-
     images = get_allowed_image_file_names_from_dir(inputdir)
 
     images = [query + " " + image for image in images]
@@ -487,13 +491,15 @@ def match_collection(inputdir, query):
     common.write_txt_file_from_list(inputdir, MATCHING_PAIRS_FILE, images)
 
     # generate non matching pairs file
-    common.write_txt_file_from_list(inputdir, NON_MATCHING_PAIRS_FILE, query)
+#    common.write_txt_file_from_list(inputdir, NON_MATCHING_PAIRS_FILE, [query])
+    common.write_txt_file_from_list(inputdir, NON_MATCHING_PAIRS_FILE, [])
 
-    matching_output_file = query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
+#    matching_output_file = query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
+    matching_output_file = inputdir + "\\" + query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
 
     exe = CDVS_BIN_FOLDER + "\\" + MATCH + "\\"  + MATCH + ".exe"
     param_list = [exe, MATCHING_PAIRS_FILE, NON_MATCHING_PAIRS_FILE, MODE, inputdir, inputdir, "-t",
-                  matching_output_file]
+                  matching_output_file, "-o", "-m", "1"]
     execute_command_using_cmd(param_list)
 
     score_dict = extract_score_from_match_output_file(matching_output_file, images)
@@ -516,7 +522,10 @@ def analyze_images(inputdir, use_case, query):
     print("Analysing '" + inputdir + "' images...")
 
     if use_case == ALL_TEST:
-        all_test(inputdir, query)
+        all_test(inputdir)
+
+    if use_case == EXTRACT_MATCH_COLLECTION:
+        extract_match_collection(inputdir, query)
 
     if use_case == EXTRACT:
         extract(inputdir)
@@ -542,7 +551,7 @@ if __name__ == '__main__':
                     description="Finding similar Europeana images using CDVS library.")
     parser.add_argument('inputdir', type=str, default="E:\\app-test\\europeana-client\\image", help="Input image files to be processed")
     parser.add_argument('-u', '--use_case', type=str, nargs='?',
-                        help="Analysis use cases in given order, such as 'all', 'all-test', 'extract', 'match', 'index', 'retrieve', 'cleanup'")
+                        help="Analysis use cases in given order, such as 'all-test', 'extract-match-collection', 'extract', 'match', 'index', 'retrieve', 'cleanup'")
     parser.add_argument('-q', '--query', type=str, default="", help="Query image file name")
 
     if len(sys.argv) < 2:
