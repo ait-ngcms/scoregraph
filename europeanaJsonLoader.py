@@ -18,6 +18,10 @@ OUTPUT_DIR_2 = 'output2'
 OUTPUT_DIR_COINS = 'output-coins'
 SLASH = '/'
 
+TEST_URL = "http://www.europeana.eu/portal/en/search.json?view=grid&q=numismatic&f%5BMEDIA%5D%5B%5D=true&f%5BTYPE%5D%5B%5D=IMAGE&per_page=96"
+OUTPUT_DIR_URL = 'output-url'
+URLS_INPUT_FILE = 'coins_urls.txt'
+
 
 def is_stored_as_json_file(path):
 
@@ -64,13 +68,24 @@ def save_json(outputdir, filename, data):
 
 def save_json_list(outputdir, filename, data):
 
+    return save_json_list_by_field(outputdir, filename, data, 'items')
+
+
+def save_json_list_by_field(outputdir, filename, data, fieldname):
+
     res = True
 
     try:
         response = json.loads(data)
-        items = response['items']
+        items = response[fieldname]
         for item in items:
-            write_json_file(outputdir, filename.replace(JSON_EXT, item['id'].replace('/','-') + JSON_EXT), item)
+            jsonfile = None
+            if 'id' in item:
+                jsonfile = filename.replace(JSON_EXT, item['id'].replace('/','-') + JSON_EXT)
+            if 'title' in item:
+                jsonfile = filename.replace(JSON_EXT, item['title'] + JSON_EXT)
+            jsonfile = jsonfile.replace(" ", "").replace("\\",'-').replace(":", "-")
+            write_json_file(outputdir, jsonfile, item)
 
     except Exception as ex:
         print('Error loading JSON file:', filename, 'content:', data)
@@ -165,5 +180,42 @@ def loadCoinsTest():
     print('Loading of Europeana coins completed.')
 
 
+def loadUrlsTest(url):
+
+    print('Loading of Europeana URLs started ...')
+
+    items = []
+
+    # read URLs from input file
+    with open(URLS_INPUT_FILE) as f:
+        item = f.readlines()
+        # remove whitespace characters
+        items = [x.strip() for x in item]
+
+    for idx, item in enumerate(items):
+        loadUrl(url, str(idx) + '-')
+
+    print('Loading of Europeana URLs completed.')
+
+
+def loadUrl(url, result_filename):
+
+    print('Loading of Europeana URL:', url)
+
+    try:
+        filename = result_filename + JSON_EXT
+
+        content = urllib.urlopen(url).read()
+        if not save_json_list_by_field(OUTPUT_DIR_URL, filename, content, 'search_results'):
+            save_text(OUTPUT_DIR_URL, filename, content)
+
+    except Exception as ex:
+        print('Error loading URL:', url, 'result filename:', result_filename, 'url:', url)
+        print(ex)
+
+    print('Loading of Europeana URL', url, 'completed.')
+
+
 #unitTest()
-loadCoinsTest()
+#loadCoinsTest()
+loadUrlsTest(TEST_URL)
