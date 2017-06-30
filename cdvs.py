@@ -127,6 +127,8 @@ import time
 
 import common
 
+import json
+
 
 # Folders
 CDVS_BIN_FOLDER = "C:\\git\\mpeg\\CDVS\\CDVS_evaluation_framework\\bin\\all_projects\\bin\\x64_Release\\"
@@ -150,6 +152,7 @@ FEATURES_PATH = "features" # the location of feature files after extract command
 # Commands
 ALL_TEST = 'all-test' # test the whole extract-index-match-htmlview process
 EXTRACT_MATCH_COLLECTION = 'extract-match-collection' # test extract and match collection for a query image
+SEARCH_COLLECTION = 'search-collection' # test searching collection for a query image
 EXTRACT = 'extract'
 INDEX_CMD = 'makeIndex'
 INDEX = 'index'
@@ -333,6 +336,16 @@ def extract_match_collection(inputdir, query):
     print '+++ CDVS extract and match collection test completed +++'
 
 
+def search_collection(inputdir, query):
+
+    print '+++ CDVS search collection test started +++'
+
+    res = search_similar_in_collection(inputdir, query)
+    print "#search result view#", res, "#search result view#"
+
+    print '+++ CDVS search match collection test completed +++'
+
+
 def extract_image_list_from_input_file(filepath):
 
     lines = [line.rstrip('\n') for line in open(filepath)]
@@ -418,6 +431,56 @@ def generate_html_view(dataset_path, annotation_path, score_dict):
     common.write_txt_file_from_string(annotation_path, main_image.replace(".", "-") + "-" + SEARCH_RESULT_FILE, data)
 
 
+def generate_similar_images_html_view(dataset_path, score_dict):
+
+    IMAGE_PAIR_POS = 1
+    main_image = score_dict[0][IMAGE_PAIR_POS].split()[0]
+
+    html_content = ''
+
+    html_prefix = ("<div class=\"wrapper\" style=\"min-height: 900px;\">\n\t"
+    + "<table>\n\t<tr>\n\t<td>\n\t<table>\n\t<tr>\n\t<td>\n\t<div style=\"display: none;\" id=\"advSearch\" align=\"center\"><img id=\"queryImage\" src=\"images/"
+    + main_image + "\" alt = \"\" height=\"64\" align=\"middle\"></div>\n\t</td>\n\t</tr>\n\t</table>\n\t</td>\n\t</tr>\n\t</table>\n\t"
+    + "<h1>CDVS similarity search results (" + str(len(score_dict)) + ") for image: " + main_image.split()[0] + "</h1>\n\t"
+    + "<div class=\"content\" align=\"center\">\n\t<table border=\"0\" align=\"center\">")
+
+
+    COLUMN_COUNT = 4
+    for idx, score_obj in enumerate(score_dict):
+
+        INDEX_POS = 1
+        FEATURES_NUM_POS = 2
+        G_SCORE_POS = 3
+        CALCULATED_SCORE = 4
+        image_pair = score_obj[IMAGE_PAIR_POS].split()
+        key_image = image_pair[0]
+        related_image = image_pair[1]
+        features_num = score_obj[FEATURES_NUM_POS]
+        g_score = score_obj[G_SCORE_POS]
+        calculated_score = score_obj[CALCULATED_SCORE]
+
+        row_begin = ""
+        row_end = ""
+        col_count = idx%COLUMN_COUNT
+        if col_count == 0:
+            row_begin = "\n\t\n\t\t<tr valign=top>\n\t"
+        if col_count == COLUMN_COUNT-1:
+            row_end = "\t</tr>"
+        html_content = (html_content + row_begin + "\t\t<td valign=\"top\">\n\t" + "\t\t\t<div id=\"result_" + score_obj[INDEX_POS]
+        + "\" style=\"padding: 5px;\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<div>\n\t\t\t\t\t\t\t<a href=\"\" title=\"search similar images\">"
+#        + related_image + "</a>&nbsp;score: " + calculated_score + " (features=" + features_num + ", g-score=" + g_score + ")"
+        + related_image + "</a>&nbsp;(features=" + features_num + ", g-score=" + g_score + ")"
+        + "\n\t\t\t\t\t\t\t\t<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/"
+        + related_image + "\" title=\"score: " + features_num + ", " + g_score + "\"/>"
+        + "<br>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</td>\n\t" + row_end)
+
+    html_postfix = "\n\t</table>\n\t</div>"
+
+    data = html_prefix + html_content + html_postfix
+
+    return data
+
+
 def get_collection_id_from_path(dataset_path):
 
     return dataset_path.split("\\")[-1]
@@ -483,6 +546,12 @@ def get_allowed_image_file_names_from_dir(inputdir):
 
 def match_collection(inputdir, query):
 
+    score_dict = search_similar_in_collection(inputdir, query)
+    generate_html_view(inputdir, inputdir, score_dict)
+
+
+def search_similar_in_collection(inputdir, query):
+
     images = get_allowed_image_file_names_from_dir(inputdir)
 
     images = [query + " " + image for image in images]
@@ -503,7 +572,10 @@ def match_collection(inputdir, query):
     execute_command_using_cmd(param_list)
 
     score_dict = extract_score_from_match_output_file(matching_output_file, images)
-    generate_html_view(inputdir, inputdir, score_dict)
+    map(lambda x: x.append(inputdir), score_dict)
+    #html_view = generate_similar_images_html_view(inputdir, score_dict)
+
+    return json.dumps(score_dict) #html_view
 
 
 def cleanup(inputdir, dirnames):
@@ -520,6 +592,7 @@ def analyze_images(inputdir, use_case, query):
 
     start = time.time()
     print("Analysing '" + inputdir + "' images...")
+    print("Use case:", use_case, "query:", query)
 
     if use_case == ALL_TEST:
         all_test(inputdir)
@@ -539,6 +612,9 @@ def analyze_images(inputdir, use_case, query):
     if use_case == MATCH:
         match(inputdir)
 
+    if use_case == SEARCH_COLLECTION:
+        search_collection(inputdir, query)
+
     end = time.time()
     print 'Calculation time:', end - start
 
@@ -551,7 +627,7 @@ if __name__ == '__main__':
                     description="Finding similar Europeana images using CDVS library.")
     parser.add_argument('inputdir', type=str, default="E:\\app-test\\europeana-client\\image", help="Input image files to be processed")
     parser.add_argument('-u', '--use_case', type=str, nargs='?',
-                        help="Analysis use cases in given order, such as 'all-test', 'extract-match-collection', 'extract', 'match', 'index', 'retrieve', 'cleanup'")
+                        help="Analysis use cases in given order, such as 'all-test', 'extract-match-collection', 'extract', 'match', 'index', 'retrieve', 'search-collection', 'cleanup'")
     parser.add_argument('-q', '--query', type=str, default="", help="Query image file name")
 
     if len(sys.argv) < 2:
