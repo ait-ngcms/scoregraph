@@ -128,6 +128,7 @@ import time
 import common
 
 import json
+import csv
 
 
 # Folders
@@ -140,6 +141,8 @@ MATCH_OUTPUT_FILE = 'match-output.txt'
 MATCHING_PAIRS_FILE = 'matching-pairs.txt'
 NON_MATCHING_PAIRS_FILE = 'non-matching-pairs.txt'
 SEARCH_RESULT_FILE = 'search-result-file.html'
+DEMO_CSV_FILE = 'demo.csv'
+DEMO_EXT_CSV_FILE = 'demo-ext.csv'
 
 # CDVS parameters
 MODE = '0' # (0..6) - sets the encoding mode to use
@@ -158,9 +161,11 @@ INDEX_CMD = 'makeIndex'
 INDEX = 'index'
 RETRIEVE = 'retrieve'
 MATCH = 'match'
+GENERATE_FILENAMES = 'generate-filenames'
 
 # Definitions
-ALLOWED_EXTENSIONS = ['.jpg']
+JPG_EXT = '.jpg'
+ALLOWED_EXTENSIONS = [JPG_EXT]
 
 
 def execute_command_using_cmd(param_list):
@@ -301,6 +306,7 @@ def check_query_file_is_in_folder(dataset_dir, inputfile):
 
 def match(inputdir):
 
+    print '+++ CDVS match started +++'
     # Generate image path list
     if IMAGE_DIR in inputdir:
         image_collection_dirs = os.listdir(inputdir + "\\" + DATASET_PATH)
@@ -312,6 +318,20 @@ def match(inputdir):
         print 'Error. ' +  DATASET_PATH + ' folder is missing.'
 
     print '+++ CDVS match completed +++'
+
+
+def generate_filenames(inputdir):
+
+    print '+++ CDVS generate file names started +++'
+    # Generate filenames in CSV file
+    demo_file = inputdir + "\\" + DEMO_CSV_FILE
+    if os.path.isfile(demo_file):
+        summary = read_demo_summary(demo_file)
+        add_filename_column(summary, inputdir + "\\" + DEMO_EXT_CSV_FILE)
+    else:
+        print 'Error. ' +  DEMO_CSV_FILE + ' is missing.'
+
+    print '+++ CDVS generate file names completed +++'
 
 
 def all_test(inputdir):
@@ -586,6 +606,52 @@ def cleanup(inputdir, dirnames):
     print '+++ CDVS cleanup completed +++'
 
 
+def read_demo_summary(inputfile):
+    print 'Read demo summary: ', inputfile
+    with open(inputfile, 'rb') as csvfile:
+        summary_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
+        #return summary_reader
+        summary = []
+        for row in summary_reader:
+#            row_str = unicode(', '.join(row), 'utf-8')
+            #row_str = ', '.join(row)
+            summary.append(row)
+#        summary.append(row_str)
+        return summary
+
+
+def add_filename_column(summary, outputfile):
+
+    print("Add file name column converted from Europeana IDs in", outputfile)
+    PATH_POS         = 0
+    EUROPEANA_ID_POS = 1
+    TITLE_POS        = 2
+    URI_POS          = 3
+    FILENAME_POS     = 4
+
+    fieldnames = ['path',
+                  'europeana_id',
+                  'title',
+                  'uri',
+                  'filename']
+
+    with open(outputfile, 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=';', lineterminator='\n')
+
+        for row in summary:
+            europeana_id = row[EUROPEANA_ID_POS]
+            file_name = europeana_id[1:].replace('/', '_') + JPG_EXT
+            entry = {
+                'path': row[PATH_POS],
+                'europeana_id': row[EUROPEANA_ID_POS],
+                'title': row[TITLE_POS],
+                'uri': row[URI_POS],
+                'filename': file_name
+            }
+
+            writer.writerow(entry)
+
+
 # Main analyzing routine
 
 def analyze_images(inputdir, use_case, query):
@@ -615,6 +681,9 @@ def analyze_images(inputdir, use_case, query):
     if use_case == SEARCH_COLLECTION:
         search_collection(inputdir, query)
 
+    if use_case == GENERATE_FILENAMES:
+        generate_filenames(inputdir)
+
     end = time.time()
     print 'Calculation time:', end - start
 
@@ -627,7 +696,7 @@ if __name__ == '__main__':
                     description="Finding similar Europeana images using CDVS library.")
     parser.add_argument('inputdir', type=str, default="E:\\app-test\\europeana-client\\image", help="Input image files to be processed")
     parser.add_argument('-u', '--use_case', type=str, nargs='?',
-                        help="Analysis use cases in given order, such as 'all-test', 'extract-match-collection', 'extract', 'match', 'index', 'retrieve', 'search-collection', 'cleanup'")
+                        help="Analysis use cases in given order, such as 'all-test', 'extract-match-collection', 'extract', 'match', 'index', 'retrieve', 'search-collection', 'generate-filenames', 'cleanup'")
     parser.add_argument('-q', '--query', type=str, default="", help="Query image file name")
 
     if len(sys.argv) < 2:
