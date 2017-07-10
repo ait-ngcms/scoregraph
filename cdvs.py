@@ -117,6 +117,21 @@ $ python cdvs.py <inputdir> -u <use case>
 Example: E:\app-test\europeana-client\image -u extract
 E:\app-test\testcollection -u all-test -q O_446.jpg
 
+
++++ Workflow for audio search API +++
+
+1. Generate file names of type <collection_id>_<file_id>.jpg using Europeana ID from demo.csv
+E:\app-test\testcollection -u generate-filenames
+
+2. Collect all images in a test collection folder. Names of the Europeana images should be in form
+<collection_id>_<file_id>.jpg
+
+3. For all files in a test collection: extract features, index and match.
+E:\app-test\testcollection -u all-test
+
+4. Search collection from API
+E:\app-test\testcollection -u search-collection -q 07101_O_446.jpg
+
 """
 
 import argparse
@@ -166,6 +181,13 @@ GENERATE_FILENAMES = 'generate-filenames'
 # Definitions
 JPG_EXT = '.jpg'
 ALLOWED_EXTENSIONS = [JPG_EXT]
+
+# Column positions in Europeana demo.csv
+PATH_POS = 0
+EUROPEANA_ID_POS = 1
+TITLE_POS = 2
+URI_POS = 3
+FILENAME_POS = 4
 
 
 def execute_command_using_cmd(param_list):
@@ -361,7 +383,8 @@ def search_collection(inputdir, query):
     print '+++ CDVS search collection test started +++'
 
     res = search_similar_in_collection(inputdir, query)
-    print "#search result view#", res, "#search result view#"
+    res_json = json.dumps(res)
+    print "#search result view#", res_json, "#search result view#"
 
     print '+++ CDVS search match collection test completed +++'
 
@@ -373,7 +396,7 @@ def extract_image_list_from_input_file(filepath):
     return images
 
 
-def extract_score_from_match_output_file(match_output_file, images):
+def extract_score_from_match_output_file(inputdir, match_output_file, images):
 
     FEATURES_NUM_POS = 1
     GSCORE_POS = 6
@@ -383,6 +406,11 @@ def extract_score_from_match_output_file(match_output_file, images):
     SORT_BY_CALCULATED_SCORE = 4
 
     res = []
+    summary = None
+
+    demo_file = inputdir + "\\" + DEMO_CSV_FILE
+    if os.path.isfile(demo_file):
+        summary = read_demo_summary(demo_file)
 
     lines = [line.rstrip('\n') for line in open(match_output_file)][2:] # remove headers - first two lines
     for idx, line in enumerate(lines):
@@ -391,12 +419,33 @@ def extract_score_from_match_output_file(match_output_file, images):
         gscore = values[GSCORE_POS]
         score = values[SCORE_POS]
         calculated_score = str(round(float(gscore)/float(features_num),3))
+        file_name = None
+        path = None
+        europeana_id = None
+        title = None
+        uri = None
+
+        try:
+            input_file = images[idx].split()[1]
+            file_name, path, europeana_id, title, uri = extract_europeana_fields(summary, input_file)
+        except Exception as ex:
+            print 'Error for input file:', input_file, ex
         if score.startswith("1.0"):
-            res.append([idx, images[idx], features_num, gscore, calculated_score])
+            res.append([idx, images[idx], features_num, gscore, calculated_score, file_name, path, europeana_id, title, uri])
 
     res = sorted(res, key=lambda x:float(x[SORT_BY_GSCORE]), reverse=True)
 
     return res
+
+
+# enrich results with Europeana specific fields from demo.csv
+def extract_europeana_fields(summary, query_file_name):
+
+        for row in summary:
+            europeana_id = row[EUROPEANA_ID_POS]
+            file_name = europeana_id[1:].replace('/', '_') + JPG_EXT
+            if file_name == query_file_name:
+                return file_name, row[PATH_POS], row[EUROPEANA_ID_POS], row[TITLE_POS], row[URI_POS]
 
 
 def generate_html_view(dataset_path, annotation_path, score_dict):
@@ -548,7 +597,7 @@ def match_images(inputdir, dataset_path):
                       matching_output_file]
         execute_command_using_cmd(param_list)
 
-        score_dict = extract_score_from_match_output_file(matching_output_file, images)
+        score_dict = extract_score_from_match_output_file(inputdir, matching_output_file, images)
         generate_html_view(dataset_path, inputdir + "\\" + ANNOTATION_PATH, score_dict)
 
 
@@ -591,11 +640,12 @@ def search_similar_in_collection(inputdir, query):
                   matching_output_file, "-o", "-m", "1"]
     execute_command_using_cmd(param_list)
 
-    score_dict = extract_score_from_match_output_file(matching_output_file, images)
+    score_dict = extract_score_from_match_output_file(inputdir, matching_output_file, images)
     map(lambda x: x.append(inputdir), score_dict)
     #html_view = generate_similar_images_html_view(inputdir, score_dict)
 
-    return json.dumps(score_dict) #html_view
+    return score_dict
+    #return json.dumps(score_dict)  # html_view
 
 
 def cleanup(inputdir, dirnames):
@@ -623,11 +673,6 @@ def read_demo_summary(inputfile):
 def add_filename_column(summary, outputfile):
 
     print("Add file name column converted from Europeana IDs in", outputfile)
-    PATH_POS         = 0
-    EUROPEANA_ID_POS = 1
-    TITLE_POS        = 2
-    URI_POS          = 3
-    FILENAME_POS     = 4
 
     fieldnames = ['path',
                   'europeana_id',
