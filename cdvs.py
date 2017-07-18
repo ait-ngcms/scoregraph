@@ -41,17 +41,14 @@ Parameters:
   dataset path - the root dir of the CDVS dataset of images
   annotation path - the root dir of the CDVS annotation files
 Options:
-  -j -jaccard : test accuracy of localization of matches using the full Jaccard
-index
+  -j -jaccard : test accuracy of localization of matches using the full Jaccard index
   -t -trace filename: trace all results in a text file
   -x -xmltrace filename: trace all results in an XML file
   -r -refmode : reference mode (if different from query mode)
-  -p -params parameters: text file containing initialization parameters for all
-modes
+  -p -params parameters: text file containing initialization parameters for all modes
   -q -queryparams parameters: text file containing initialization parameters for
- queries (not for references - used only in interoperability tests)
-  -o -oneway: use one-way local matching (instead of two-way local matching whic
-h is the default)
+      queries (not for references - used only in interoperability tests)
+  -o -oneway: use one-way local matching (instead of two-way local matching which is the default)
   -m -matchtype N: use match type N, where N can be one of the following values:
 
      0: ignore global if local match
@@ -66,6 +63,50 @@ index, nmatched, inliers,    weight,  w-thresh,  g-thresh,   g-score,     score,
     1       300      299 299.000000   1.575000   7.235000 279.402283   1.000000
     2        67        0   0.000000   1.575000   7.235000   9.250980   1.000000
     3        61        0   0.000000   1.575000   7.235000   9.039987   1.000000
+
+The meaning of the fields is as following:
+   index:     index of document in a folder
+   nmatched:  actual number of matched points
+   inliers:   indicates the number of pairs which actually match according to the geometric verification
+   weight:    local score - matching score provided by local descriptors
+   w-thresh:  local threshold used for weighted matching of keypoints  (query_params.wmThreshold)
+   g-thresh:  global threshold used for matching the global descriptor (query_params.gdThreshold)
+   g-score:   matching score provided by global descriptor
+   score:     final normalized score (in a range from 0 to 1)
+
+The list of parameters that can be changed is the following:
+
+int descLength;                    length in bytes of the CDVS descriptor (i.e. 512, 1024, 2048)
+int resizeMaxSize;                 maximum size of one side of the image
+int blockWidth;                    coordinate coding: spatial resolution of the coordinates (max int ctxTableIdx; coordinate coding: index of the context table to use
+char modeExt[40];                  descriptor extension
+unsigned int selectMaxPoints;      feature extraction: max number of points used to describe an unsigned int numRelevantPoints; feature extraction: number of points considered relevant in the float ratioThreshold; DISTRAT: threshold for descriptor matching
+unsigned int minNumInliers;        DISTRAT: min number of inliers after the geometric check
+double wmThreshold;                Weighted matching threshold
+double wmThreshold2Way;            Two way matching weighted threshold
+double wmMixed;                    Weighted matching threshold for mixed cases
+double wmMixed2Way;                Two way weighted matching threshold for mixed cases
+int debugLevel;                    0 = off, 1 = on (quiet), 2 = on (verbose), 3 = verbose + dump int ransacNumTests; RANSAC: number of iterations in RANSAC
+float ransacThreshold;             RANSAC: distortion threshold to be used by RANSAC
+unsigned int chiSquarePercentile;  percentile used in DISTRAT for Chi-square computation
+int retrievalLoops;                number of loops performed in the final stage of the retrieval double wmRetrieval; Weighted matching threshold for retrieval
+double wmRetrieval2Way;            Two way weighted matching threshold for retrieval
+int retrievalMaxPoints;            max number of points used in the retrieval experiment
+int queryExpansionLoops;           number of query expansion loops to perform in the retrieval experiment
+float scfvThreshold;               threshold value to control the sparsity of scfv vector
+bool hasVar;                       indicates if using the gradient vector w.r.t the variance of float locationBits; average bits per key point to encode location information;
+bool hasBitSelection;              indicates if the Global Descriptor uses the bit selection algorithm float gdThreshold; global descriptor threshold
+float gdThresholdMixed;            global descriptor threshold for mixed cases
+
+The example parameter file:
+
+parameters.txt
+
+[Mode = 0]
+selectMaxPoints = 600;
+retrievalMaxPoints = 600;
+gdThreshold = 5.0;
+wmThreshold = 1.5;
 
 
 CDVS database index generation module.
@@ -117,6 +158,9 @@ $ python cdvs.py <inputdir> -u <use case>
 Example: E:\app-test\europeana-client\image -u extract
 E:\app-test\testcollection -u all-test -q O_446.jpg
 
+To search among all documents in test collection with CSVS feature extraction (-m F) taking parameters from
+configuration file (-p params.txt):
+E:\app-test\testcollection -u all-test -m F -p params.txt
 
 +++ Workflow for audio search API +++
 
@@ -134,6 +178,8 @@ E:\app-test\testcollection -u search-collection -q 07101_O_446.jpg
 
 5. Rename Europeana files
 E:\app-test\collection-all -u europeana-rename
+or with CDVS feature extraction
+E:\app-test\collection-all -u europeana-rename -m F
 
 """
 
@@ -339,6 +385,16 @@ def check_query_file_is_in_folder(dataset_dir, inputfile):
     return res
 
 
+def read_collection_summary(inputdir):
+
+    summary = None
+
+    demo_file = inputdir + "\\" + DEMO_CSV_FILE
+    if os.path.isfile(demo_file):
+        summary = read_demo_summary(demo_file)
+    return summary
+
+
 def match(inputdir):
 
     print '+++ CDVS match started +++'
@@ -347,8 +403,9 @@ def match(inputdir):
         image_collection_dirs = os.listdir(inputdir + "\\" + DATASET_PATH)
         for image_collection_dir in image_collection_dirs:
             dataset_dir = inputdir + "\\" + DATASET_PATH + "\\" + image_collection_dir
+            summary = read_collection_summary(inputdir)
             # Match images
-            match_images(inputdir, dataset_dir)
+            match_images(inputdir, dataset_dir, summary)
     else:
         print 'Error. ' +  DATASET_PATH + ' folder is missing.'
 
@@ -384,7 +441,7 @@ def europeana_rename(inputdir):
     print '+++ Aggregation of all Europeana files completed +++'
 
 
-def all_test(inputdir, mode):
+def all_test(inputdir, mode, params):
 
     print '+++ CDVS all test started +++'
 
@@ -392,27 +449,29 @@ def all_test(inputdir, mode):
 
     print '+++ CDVS all test - collection extracted +++'
 
+    summary = read_collection_summary(inputdir)
     for query in image_files:
-        match_collection(inputdir, query)
+        match_collection(inputdir, query, params, summary)
 
     print '+++ CDVS all test completed +++'
 
 
-def extract_match_collection(inputdir, query):
+def extract_match_collection(inputdir, query, params):
 
     print '+++ CDVS extract and match collection test started +++'
 
     extract_collection(inputdir)
-    match_collection(inputdir, query)
+    summary = read_collection_summary(inputdir)
+    match_collection(inputdir, query, params, summary)
 
     print '+++ CDVS extract and match collection test completed +++'
 
 
-def search_collection(inputdir, query):
+def search_collection(inputdir, query, params, summary):
 
     print '+++ CDVS search collection test started +++'
 
-    res = search_similar_in_collection(inputdir, query)
+    res = search_similar_in_collection(inputdir, query, params, summary)
     res_json = json.dumps(res)
     print "#search result view#", res_json, "#search result view#"
 
@@ -426,29 +485,39 @@ def extract_image_list_from_input_file(filepath):
     return images
 
 
-def extract_score_from_match_output_file(inputdir, match_output_file, images):
+def extract_score_from_match_output_file(inputdir, match_output_file, images, summary):
 
-    FEATURES_NUM_POS = 1
-    GSCORE_POS = 6
-    SCORE_POS = 7
+    INDEX_POS         = 0
+    FEATURES_NUM_POS  = 1
+    INLIERS_POS       = 2
+    WEIGHT_POS        = 3
+    W_THRES_POS       = 4
+    G_THRES_POS       = 5
+    GSCORE_POS        = 6
+    SCORE_POS         = 7
 
     SORT_BY_GSCORE = 3
-    SORT_BY_CALCULATED_SCORE = 4
+    SORT_BY_FINAL_SCORE = 4
+    SORT_BY_LSCORE = 12
 
     res = []
-    summary = None
+#    summary = None
 
-    demo_file = inputdir + "\\" + DEMO_CSV_FILE
-    if os.path.isfile(demo_file):
-        summary = read_demo_summary(demo_file)
+#    demo_file = inputdir + "\\" + DEMO_CSV_FILE
+#    if os.path.isfile(demo_file):
+#        summary = read_demo_summary(demo_file)
 
     lines = [line.rstrip('\n') for line in open(match_output_file)][2:] # remove headers - first two lines
     for idx, line in enumerate(lines):
         values = line.split()
+        index = values[INDEX_POS]
         features_num = values[FEATURES_NUM_POS]
+        inliers = values[INLIERS_POS]
+        weight = values[WEIGHT_POS]
+        w_thres = values[W_THRES_POS]
+        g_thres = values[G_THRES_POS]
         gscore = values[GSCORE_POS]
         score = values[SCORE_POS]
-        calculated_score = None #str(round(float(gscore)/float(features_num),3))
         file_name = None
         path = None
         europeana_id = None
@@ -460,10 +529,18 @@ def extract_score_from_match_output_file(inputdir, match_output_file, images):
             file_name, path, europeana_id, title, uri = extract_europeana_fields(summary, input_file)
         except Exception as ex:
             print 'Error for input file:', input_file, ex
-        if score.startswith("1.0"):
-            res.append([idx, images[idx], features_num, gscore, calculated_score, file_name, path, europeana_id, title, uri])
+        if not score.startswith("0.0"):
+            #res.append([idx, images[idx], features_num, gscore, calculated_score, file_name, path, europeana_id, title, uri])
+            res.append(
+                [idx, images[idx], features_num, gscore, score, file_name, path, europeana_id, title, uri, index,
+                 inliers, weight, w_thres, g_thres
+                ]
+            )
 
-    res = sorted(res, key=lambda x:float(x[SORT_BY_GSCORE]), reverse=True)
+#    res = sorted(res, key=lambda x:float(x[SORT_BY_FINAL_SCORE]), reverse=True)
+#    res = sorted(res, key=lambda x:float(x[SORT_BY_GSCORE]), reverse=True)
+#    res = sorted(res, key=lambda x:float(x[SORT_BY_LSCORE]), reverse=True)
+    res = sorted(res, key=lambda x: (float(x[SORT_BY_LSCORE]) and float(x[SORT_BY_GSCORE])), reverse=True)
 
     return res
 
@@ -471,11 +548,11 @@ def extract_score_from_match_output_file(inputdir, match_output_file, images):
 # enrich results with Europeana specific fields from demo.csv
 def extract_europeana_fields(summary, query_file_name):
 
-        for row in summary:
-            europeana_id = row[EUROPEANA_ID_POS]
-            file_name = europeana_id[1:].replace('/', '_') + JPG_EXT
-            if file_name == query_file_name:
-                return file_name, row[PATH_POS], row[EUROPEANA_ID_POS], row[TITLE_POS], row[URI_POS]
+    for row in summary:
+        europeana_id = row[EUROPEANA_ID_POS]
+        file_name = europeana_id[1:].replace('/', '_') + JPG_EXT
+        if file_name == query_file_name:
+            return file_name, row[PATH_POS], row[EUROPEANA_ID_POS], row[TITLE_POS], row[URI_POS]
 
 
 def generate_html_view(dataset_path, annotation_path, score_dict):
@@ -497,19 +574,40 @@ def generate_html_view(dataset_path, annotation_path, score_dict):
         + "<div class=\"content\" align=\"center\">\n\t<table border=\"0\" align=\"center\">")
 
 
-        COLUMN_COUNT = 4
+        COLUMN_COUNT = 14 #4
         for idx, score_obj in enumerate(score_dict):
 
-            INDEX_POS = 1
-            FEATURES_NUM_POS = 2
-            G_SCORE_POS = 3
-            CALCULATED_SCORE = 4
+            INDEX_POS         = 1
+            FEATURES_NUM_POS  = 2
+            G_SCORE_POS       = 3
+            SCORE_POS         = 4
+            FILE_NAME_POS     = 5
+            PATH_POS          = 6
+            EUROPEANA_ID_POS  = 7
+            TITLE_POS         = 8
+            URI_POS           = 9
+            INDEX_ORIG_POS    = 10
+            INLIERS_POS       = 11
+            WEIGHT_POS        = 12
+            W_THRES_POS       = 13
+            G_THRES_POS       = 14
+
             image_pair = score_obj[IMAGE_PAIR_POS].split()
             key_image = image_pair[0]
             related_image = image_pair[1]
-            features_num = score_obj[FEATURES_NUM_POS]
-            g_score = score_obj[G_SCORE_POS]
-            calculated_score = score_obj[CALCULATED_SCORE]
+            features_num = str(score_obj[FEATURES_NUM_POS])
+            g_score = str(score_obj[G_SCORE_POS])
+            score = str(score_obj[SCORE_POS])
+            file_name = score_obj[FILE_NAME_POS]
+            path = score_obj[PATH_POS]
+            europeana_id = score_obj[EUROPEANA_ID_POS]
+            title = score_obj[TITLE_POS]
+            uri = score_obj[URI_POS]
+            index_orig = str(score_obj[INDEX_ORIG_POS])
+            inliers = str(score_obj[INLIERS_POS])
+            weight = str(score_obj[WEIGHT_POS])
+            w_thres = str(score_obj[W_THRES_POS])
+            g_thres = str(score_obj[G_THRES_POS])
 
             row_begin = ""
             row_end = ""
@@ -520,8 +618,10 @@ def generate_html_view(dataset_path, annotation_path, score_dict):
                 row_end = "\t</tr>"
             html_content = (html_content + row_begin + "\t\t<td valign=\"top\">\n\t" + "\t\t\t<div id=\"result_" + score_obj[INDEX_POS]
             + "\" style=\"padding: 5px;\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<div>\n\t\t\t\t\t\t\t<a href=\"\" title=\"search similar images\">"
-    #        + related_image + "</a>&nbsp;score: " + calculated_score + " (features=" + features_num + ", g-score=" + g_score + ")"
-            + related_image + "</a>&nbsp;(features=" + features_num + ", g-score=" + g_score + ")"
+            + "Title: " + str(title) + "</a>&nbsp;(final score=" + score + ", l-score=" + weight + ", g-score=" + g_score + ", idx=" + str(idx)
+            + ", matched points=" + features_num + ", file name=" + str(file_name) + ", path=" + str(path) + ", europeana_id="
+            + str(europeana_id) + ", image=" + related_image
+            + ", uri=" + str(uri) + ", index_orig=" + index_orig + ", inliers=" + inliers + ", l_thres=" + w_thres + ", g_thres=" + g_thres + ")"
             + "\n\t\t\t\t\t\t\t\t<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/"
             + related_image + "\" title=\"score: " + features_num + ", " + g_score + "\"/>"
             + "<br>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</td>\n\t" + row_end)
@@ -608,7 +708,7 @@ def retrieve_similar_images(inputdir, dataset_path):
 # C:\git\mpeg\CDVS\CDVS_evaluation_framework\bin\all_projects\bin\x64_Release\match>match.exe
 # matching-pairs.txt non-matching-pairs.txt 0 C:\app\europeana-client\demo\07101 C:\app\europeana-client\annotation
 # -t match-output.txt
-def match_images(inputdir, dataset_path):
+def match_images(inputdir, dataset_path, summary):
 
     # read outputs of retrieve command
     retrieval_output_file = get_collection_id_from_path(dataset_path) + "-" + RETRIEVAL_OUTPUT_FILE
@@ -631,7 +731,7 @@ def match_images(inputdir, dataset_path):
                       matching_output_file]
         execute_command_using_cmd(param_list)
 
-        score_dict = extract_score_from_match_output_file(inputdir, matching_output_file, images)
+        score_dict = extract_score_from_match_output_file(inputdir, matching_output_file, images, summary)
         generate_html_view(dataset_path, inputdir + "\\" + ANNOTATION_PATH, score_dict)
 
 
@@ -647,7 +747,7 @@ def get_allowed_image_file_names_from_dir(inputdir):
     return images
 
 
-def match_collection(inputdir, query):
+def match_collection(inputdir, query, params, summary):
 
     print 'match query:', query
 
@@ -656,13 +756,13 @@ def match_collection(inputdir, query):
 
         # generate matching pairs file
         if not exists_file(html_output_file):
-            score_dict = search_similar_in_collection(inputdir, query)
+            score_dict = search_similar_in_collection(inputdir, query, params, summary)
             generate_html_view(inputdir, inputdir, score_dict)
     except Exception as ex:
         print "Error by collection matching for query:", query, ex
 
 
-def search_similar_in_collection(inputdir, query):
+def search_similar_in_collection(inputdir, query, params, summary):
 
     start = time.time()
 
@@ -676,24 +776,22 @@ def search_similar_in_collection(inputdir, query):
     if not exists_file(matching_output_file):
         common.write_txt_file_from_list(inputdir, MATCHING_PAIRS_FILE, images)
 
-    # generate non matching pairs file
-#    common.write_txt_file_from_list(inputdir, NON_MATCHING_PAIRS_FILE, [query])
+        # generate non matching pairs file
         common.write_txt_file_from_list(inputdir, NON_MATCHING_PAIRS_FILE, [])
 
         exe = CDVS_BIN_FOLDER + "\\" + MATCH + "\\"  + MATCH + ".exe"
+        params_path = inputdir + "\\" + params
         param_list = [exe, MATCHING_PAIRS_FILE, NON_MATCHING_PAIRS_FILE, MODE, inputdir, inputdir, "-t",
-                      matching_output_file, "-o", "-m", "1"]
+                      matching_output_file, "-o", "-m", "1", "-p", params_path]
         execute_command_using_cmd(param_list)
 
-    score_dict = extract_score_from_match_output_file(inputdir, matching_output_file, images)
+    score_dict = extract_score_from_match_output_file(inputdir, matching_output_file, images, summary)
     map(lambda x: x.append(inputdir), score_dict)
-    #html_view = generate_similar_images_html_view(inputdir, score_dict)
 
     end = time.time()
-    print 'Calculation time :', end - start, ' for query:', query
+    print 'Matching calculation time :', end - start, ' for query:', query
 
     return score_dict
-    #return json.dumps(score_dict)  # html_view
 
 
 def cleanup(inputdir, dirnames):
@@ -705,16 +803,13 @@ def cleanup(inputdir, dirnames):
 
 
 def read_demo_summary(inputfile):
+
     print 'Read demo summary: ', inputfile
     with open(inputfile, 'rb') as csvfile:
         summary_reader = csv.reader(csvfile, delimiter=';', quotechar='|')
-        #return summary_reader
         summary = []
         for row in summary_reader:
-#            row_str = unicode(', '.join(row), 'utf-8')
-            #row_str = ', '.join(row)
             summary.append(row)
-#        summary.append(row_str)
         return summary
 
 
@@ -765,17 +860,17 @@ def move_files(inputdir, summary):
 
 # Main analyzing routine
 
-def analyze_images(inputdir, use_case, query, mode):
+def analyze_images(inputdir, use_case, query, mode, params):
 
     start = time.time()
     print("Analysing '" + inputdir + "' images...")
     print("Use case:", use_case, "query:", query)
 
     if use_case == ALL_TEST:
-        all_test(inputdir, mode)
+        all_test(inputdir, mode, params)
 
     if use_case == EXTRACT_MATCH_COLLECTION:
-        extract_match_collection(inputdir, query)
+        extract_match_collection(inputdir, query, params)
 
     if use_case == EXTRACT:
         extract(inputdir)
@@ -790,7 +885,7 @@ def analyze_images(inputdir, use_case, query, mode):
         match(inputdir)
 
     if use_case == SEARCH_COLLECTION:
-        search_collection(inputdir, query)
+        search_collection(inputdir, query, params)
 
     if use_case == GENERATE_FILENAMES:
         generate_filenames(inputdir)
@@ -813,10 +908,11 @@ if __name__ == '__main__':
                         help="Analysis use cases in given order, such as 'all-test', 'extract-match-collection', 'extract', 'match', 'index', 'retrieve', 'search-collection', 'generate-filenames', 'europeana-rename', 'cleanup'")
     parser.add_argument('-q', '--query', type=str, default="", help="Query image file name")
     parser.add_argument('-m', '--mode', type=str, default="", help="Mode of the command. e.g. F for CDVS feature extraction")
+    parser.add_argument('-p', '--params', type=str, default="", help="File name of the customized CDVS parameters that should be in root folder")
 
     if len(sys.argv) < 2:
         parser.print_help()
         sys.exit(1)
 
     args = parser.parse_args()
-    analyze_images(args.inputdir, args.use_case, args.query, args.mode)
+    analyze_images(args.inputdir, args.use_case, args.query, args.mode, args.params)
