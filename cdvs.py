@@ -499,6 +499,7 @@ def extract_score_from_match_output_file(inputdir, match_output_file, images, su
     SORT_BY_GSCORE = 3
     SORT_BY_FINAL_SCORE = 4
     SORT_BY_LSCORE = 12
+    SORT_BY_CUSTOM_SCORE = 15
 
     res = []
 #    summary = None
@@ -523,6 +524,7 @@ def extract_score_from_match_output_file(inputdir, match_output_file, images, su
         europeana_id = None
         title = None
         uri = None
+        custom_score = None
 
         try:
             input_file = images[idx].split()[1]
@@ -530,17 +532,19 @@ def extract_score_from_match_output_file(inputdir, match_output_file, images, su
         except Exception as ex:
             print 'Error for input file:', input_file, ex
         if not score.startswith("0.0"):
+            custom_score = (float(weight) + float(gscore)) * float(features_num)
             #res.append([idx, images[idx], features_num, gscore, calculated_score, file_name, path, europeana_id, title, uri])
             res.append(
                 [idx, images[idx], features_num, gscore, score, file_name, path, europeana_id, title, uri, index,
-                 inliers, weight, w_thres, g_thres
+                 inliers, weight, w_thres, g_thres, str(custom_score)
                 ]
             )
 
 #    res = sorted(res, key=lambda x:float(x[SORT_BY_FINAL_SCORE]), reverse=True)
 #    res = sorted(res, key=lambda x:float(x[SORT_BY_GSCORE]), reverse=True)
 #    res = sorted(res, key=lambda x:float(x[SORT_BY_LSCORE]), reverse=True)
-    res = sorted(res, key=lambda x: (float(x[SORT_BY_LSCORE]) and float(x[SORT_BY_GSCORE])), reverse=True)
+#    res = sorted(res, key=lambda x: (float(x[SORT_BY_LSCORE]) and float(x[SORT_BY_GSCORE])), reverse=True)
+    res = sorted(res, key=lambda x: float(x[SORT_BY_CUSTOM_SCORE]), reverse=True)
 
     return res
 
@@ -591,6 +595,7 @@ def generate_html_view(dataset_path, annotation_path, score_dict):
             WEIGHT_POS        = 12
             W_THRES_POS       = 13
             G_THRES_POS       = 14
+            CUSTOM_SCORE_POS  = 15
 
             image_pair = score_obj[IMAGE_PAIR_POS].split()
             key_image = image_pair[0]
@@ -608,6 +613,7 @@ def generate_html_view(dataset_path, annotation_path, score_dict):
             weight = str(score_obj[WEIGHT_POS])
             w_thres = str(score_obj[W_THRES_POS])
             g_thres = str(score_obj[G_THRES_POS])
+            custom_score = str(score_obj[CUSTOM_SCORE_POS])
 
             row_begin = ""
             row_end = ""
@@ -618,7 +624,7 @@ def generate_html_view(dataset_path, annotation_path, score_dict):
                 row_end = "\t</tr>"
             html_content = (html_content + row_begin + "\t\t<td valign=\"top\">\n\t" + "\t\t\t<div id=\"result_" + score_obj[INDEX_POS]
             + "\" style=\"padding: 5px;\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<div>\n\t\t\t\t\t\t\t<a href=\"\" title=\"search similar images\">"
-            + "Title: " + str(title) + "</a>&nbsp;(final score=" + score + ", l-score=" + weight + ", g-score=" + g_score + ", idx=" + str(idx)
+            + "Title: " + str(title) + "</a>&nbsp;(custom score=" + custom_score + ", final score=" + score + ", l-score=" + weight + ", g-score=" + g_score + ", idx=" + str(idx)
             + ", matched points=" + features_num + ", file name=" + str(file_name) + ", path=" + str(path) + ", europeana_id="
             + str(europeana_id) + ", image=" + related_image
             + ", uri=" + str(uri) + ", index_orig=" + index_orig + ", inliers=" + inliers + ", l_thres=" + w_thres + ", g_thres=" + g_thres + ")"
@@ -798,7 +804,6 @@ def cleanup(inputdir, dirnames):
 
     # clean up directories
     pass
-
     print '+++ CDVS cleanup completed +++'
 
 
