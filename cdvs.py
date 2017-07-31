@@ -622,15 +622,18 @@ def generate_html_view(dataset_path, annotation_path, score_dict):
                 row_begin = "\n\t\n\t\t<tr valign=top>\n\t"
             if col_count == COLUMN_COUNT-1:
                 row_end = "\t</tr>"
-            html_content = (html_content + row_begin + "\t\t<td valign=\"top\">\n\t" + "\t\t\t<div id=\"result_" + score_obj[INDEX_POS]
-            + "\" style=\"padding: 5px;\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<div>\n\t\t\t\t\t\t\t<a href=\"\" title=\"search similar images\">"
-            + "Title: " + str(title) + "</a>&nbsp;(custom score=" + custom_score + ", final score=" + score + ", l-score=" + weight + ", g-score=" + g_score + ", idx=" + str(idx)
-            + ", matched points=" + features_num + ", file name=" + str(file_name) + ", path=" + str(path) + ", europeana_id="
-            + str(europeana_id) + ", image=" + related_image
-            + ", uri=" + str(uri) + ", index_orig=" + index_orig + ", inliers=" + inliers + ", l_thres=" + w_thres + ", g_thres=" + g_thres + ")"
-            + "\n\t\t\t\t\t\t\t\t<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/"
-            + related_image + "\" title=\"score: " + features_num + ", " + g_score + "\"/>"
-            + "<br>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</td>\n\t" + row_end)
+            if uri is not None:
+                html_content = (html_content + row_begin + "\t\t<td valign=\"top\">\n\t" + "\t\t\t<div id=\"result_" + score_obj[INDEX_POS]
+                + "\" style=\"padding: 5px;\">\n\t\t\t\t\t<div>\n\t\t\t\t\t\t<div>\n\t\t\t\t\t\t\t<a href=\"" + uri + "\" title=\"search similar images\">"
+                + "Title: " + str(title) + "</a>&nbsp;(custom score=" + custom_score + ", final score=" + score + ", l-score=" + weight + ", g-score=" + g_score + ", idx=" + str(idx)
+                + ", matched points=" + features_num + ", file name=" + str(file_name) + ", path=" + str(path) + ", europeana_id="
+                + str(europeana_id) + ", image=" + related_image
+                + ", uri=" + str(uri) + ", index_orig=" + index_orig + ", inliers=" + inliers + ", l_thres=" + w_thres + ", g_thres=" + g_thres + ")"
+    #            + "\n\t\t\t\t\t\t\t\t<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"file://" + dataset_path.replace("\\", "/")  + "/"
+    #            + related_image + "\" title=\"score: " + features_num + ", " + g_score + "\"/>"
+                + "\n\t\t\t\t\t\t\t\t<img style=\"background-color: white; border-color: black; border-width: 10;\" src=\"" + uri
+                + "\" title=\"score: " + features_num + ", " + g_score + "\"/>"
+                + "<br>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</td>\n\t" + row_end)
 
         html_postfix = "\n\t</table>\n\t</div>\n\t</body>\n\t</html>"
 
