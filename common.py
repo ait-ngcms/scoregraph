@@ -183,6 +183,17 @@ def write_txt_file_from_list(outputdir, filename, itemlist):
     file.write("\n".join(itemlist))
     file.close()
 
+def write_txt_file_from_list_of_lists(outputdir, filename, itemlist):
+
+    ensure_directory(outputdir)
+    with open(outputdir + "\\" + filename, 'w') as f:
+        for _list in itemlist:
+            #f.write(';'.join(_list))
+            for _string in _list:
+                f.write(str(_string).strip('[]'))
+                f.write(';')
+            f.write('\n')
+
 def write_txt_file_from_string(outputdir, filename, data):
 
     ensure_directory(outputdir)

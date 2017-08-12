@@ -197,6 +197,9 @@ import csv
 
 # Folders
 CDVS_BIN_FOLDER = "C:\\git\\mpeg\\CDVS\\CDVS_evaluation_framework\\bin\\all_projects\\bin\\x64_Release\\"
+ARCHIVE_MATCHING_OUTPUT_DIR = "archive-matching-output"
+HTML_DIR = "html"
+SCORE_MATCHING_OUTPUT_DIR = "score-matching-output"
 
 #Files
 RETRIEVAL_GROUND_TRUTH_FILE = 'ground-truth-annotations.txt'
@@ -245,6 +248,10 @@ FILENAME_POS = 4
 # Europeana file name positions
 COLLECTION_POS_IN_EUROPEANA_NAME = 0
 FILENAME_POS_IN_EUROPEANA_NAME = 1
+
+# Matching definitions
+MATCHING_CHUNK_SIZE = 1000
+MAX_BEST_RESULTS = 24
 
 
 def execute_command_using_cmd(param_list):
@@ -389,7 +396,8 @@ def read_collection_summary(inputdir):
 
     summary = None
 
-    demo_file = inputdir + "\\" + DEMO_CSV_FILE
+#    demo_file = inputdir + "\\" + DEMO_CSV_FILE
+    demo_file = inputdir + "\\" + DEMO_EXT_CSV_FILE
     if os.path.isfile(demo_file):
         summary = read_demo_summary(demo_file)
     return summary
@@ -544,6 +552,99 @@ def extract_score_from_match_output_file(inputdir, match_output_file, images, su
 #    res = sorted(res, key=lambda x:float(x[SORT_BY_GSCORE]), reverse=True)
 #    res = sorted(res, key=lambda x:float(x[SORT_BY_LSCORE]), reverse=True)
 #    res = sorted(res, key=lambda x: (float(x[SORT_BY_LSCORE]) and float(x[SORT_BY_GSCORE])), reverse=True)
+    res = sorted(res, key=lambda x: float(x[SORT_BY_CUSTOM_SCORE]), reverse=True)
+
+    return res[:MAX_BEST_RESULTS] # limit results by 24
+    #return res
+
+
+def extract_score_from_cur_match_output_file(match_output_file, images):
+
+    INDEX_POS         = 0
+    FEATURES_NUM_POS  = 1
+    INLIERS_POS       = 2
+    WEIGHT_POS        = 3
+    W_THRES_POS       = 4
+    G_THRES_POS       = 5
+    GSCORE_POS        = 6
+    SCORE_POS         = 7
+
+    SORT_BY_CUSTOM_SCORE = 10
+
+    res = []
+
+    lines = [line.rstrip('\n') for line in open(match_output_file)][2:] # remove headers - first two lines
+    for idx, line in enumerate(lines):
+        values = line.split()
+        index = values[INDEX_POS]
+        features_num = values[FEATURES_NUM_POS]
+        inliers = values[INLIERS_POS]
+        weight = values[WEIGHT_POS]
+        w_thres = values[W_THRES_POS]
+        g_thres = values[G_THRES_POS]
+        gscore = values[GSCORE_POS]
+        score = values[SCORE_POS]
+
+        if not score.startswith("0.0"):
+            custom_score = (float(weight) + float(gscore)) * float(features_num)
+            res.append(
+                [idx, images[idx], features_num, gscore, score, index,
+                 inliers, weight, w_thres, g_thres, str(custom_score)
+                ]
+            )
+
+    res = sorted(res, key=lambda x: float(x[SORT_BY_CUSTOM_SCORE]), reverse=True)
+
+    return res[:MAX_BEST_RESULTS] # limit results by 24
+
+
+def add_europeana_fields(scores, summary):
+
+    INDEX_POS          = 0
+    IMAGE_PAIR         = 1
+    FEATURES_NUM_POS   = 2
+    GSCORE_POS         = 3
+    SCORE_POS          = 4
+    INDEX_IN_CHUNK_POS = 5
+    INLIERS_POS        = 6
+    WEIGHT_POS         = 7
+    W_THRES_POS        = 8
+    G_THRES_POS        = 9
+    CUSTOM_SCORE       = 10
+
+    SORT_BY_CUSTOM_SCORE = 15
+
+    res = []
+
+    for idx, values in enumerate(scores):
+        index = values[INDEX_IN_CHUNK_POS]
+        image_pair = values[IMAGE_PAIR]
+        features_num = values[FEATURES_NUM_POS]
+        inliers = values[INLIERS_POS]
+        weight = values[WEIGHT_POS]
+        w_thres = values[W_THRES_POS]
+        g_thres = values[G_THRES_POS]
+        gscore = values[GSCORE_POS]
+        score = values[SCORE_POS]
+        custom_score = values[CUSTOM_SCORE]
+        file_name = None
+        path = None
+        europeana_id = None
+        title = None
+        uri = None
+
+        try:
+            input_file = image_pair.split()[1]
+            file_name, path, europeana_id, title, uri = extract_europeana_fields(summary, input_file)
+        except Exception as ex:
+            print 'Error for input file:', input_file, ex
+
+        res.append(
+            [idx, image_pair, features_num, gscore, score, file_name, path, europeana_id, title, uri, index,
+             inliers, weight, w_thres, g_thres, custom_score
+            ]
+        )
+
     res = sorted(res, key=lambda x: float(x[SORT_BY_CUSTOM_SCORE]), reverse=True)
 
     return res
@@ -761,17 +862,22 @@ def match_collection(inputdir, query, params, summary):
     print 'match query:', query
 
     try:
-        html_output_file = inputdir + "\\" + query.replace(".jpg", ".html")
+        html_dir = inputdir.replace(inputdir.split("\\")[-1], HTML_DIR)
+#        html_output_file = inputdir + "\\" + query.replace(".jpg", ".html")
+        html_output_file = html_dir + "\\" + query.replace(".", "-") + "-search-result-file.html"
 
         # generate matching pairs file
         if not exists_file(html_output_file):
             score_dict = search_similar_in_collection(inputdir, query, params, summary)
-            generate_html_view(inputdir, inputdir, score_dict)
+            generate_html_view(html_dir, html_dir, score_dict)
+#            generate_html_view(inputdir, HTML_DIR, score_dict)
     except Exception as ex:
         print "Error by collection matching for query:", query, ex
 
 
 def search_similar_in_collection(inputdir, query, params, summary):
+
+    SORT_BY_CUSTOM_SCORE = 10
 
     start = time.time()
 
@@ -779,28 +885,68 @@ def search_similar_in_collection(inputdir, query, params, summary):
 
     images = [query + " " + image for image in images]
 
-    matching_output_file = inputdir + "\\" + query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
+    archive_dir = inputdir.replace(inputdir.split("\\")[-1], ARCHIVE_MATCHING_OUTPUT_DIR)
+    score_dir = inputdir.replace(inputdir.split("\\")[-1], SCORE_MATCHING_OUTPUT_DIR)
+    #matching_output_file = inputdir + "\\" + query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
+    #matching_output_file = ARCHIVE_MATCHING_OUTPUT_DIR + "\\" + query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
+    matching_output_file = archive_dir + "\\" + query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
+    score_output_file = score_dir + "\\" + query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
+    #archive_matching_output_file = ARCHIVE_MATCHING_OUTPUT_DIR + "\\" + query.replace(".", "-") + "-" + MATCH_OUTPUT_FILE
 
-    # generate matching pairs file
-    if not exists_file(matching_output_file):
-        common.write_txt_file_from_list(inputdir, MATCHING_PAIRS_FILE, images)
+    scores = []
 
-        # generate non matching pairs file
-        common.write_txt_file_from_list(inputdir, NON_MATCHING_PAIRS_FILE, [])
+    chunk_count = 0
 
-        exe = CDVS_BIN_FOLDER + "\\" + MATCH + "\\"  + MATCH + ".exe"
-        params_path = inputdir + "\\" + params
-        param_list = [exe, MATCHING_PAIRS_FILE, NON_MATCHING_PAIRS_FILE, MODE, inputdir, inputdir, "-t",
-                      matching_output_file, "-o", "-m", "1", "-p", params_path]
-        execute_command_using_cmd(param_list)
+    # create multiple matching pair files e.g. max 1000 (MATCHING_CHUNK_SIZE) entries in each file
+    for cur_images in [images[i:i + MATCHING_CHUNK_SIZE] for i in xrange(0, len(images), MATCHING_CHUNK_SIZE)]:
+        # generate matching pairs file
+#        cur_archive_file = archive_matching_output_file.replace(".txt", "_" + str(chunk_count) + ".txt")
+        cur_archive_file = matching_output_file.replace(".txt", "_" + str(chunk_count) + ".txt")
+        cur_score_file = score_output_file.replace(".txt", "_" + str(chunk_count) + ".txt")
+        if not exists_file(cur_archive_file):
+#        if not exists_file(matching_output_file):
 
-    score_dict = extract_score_from_match_output_file(inputdir, matching_output_file, images, summary)
-    map(lambda x: x.append(inputdir), score_dict)
+            # perform matching for each matching pair file
+            common.write_txt_file_from_list(inputdir, MATCHING_PAIRS_FILE, cur_images)
+            #common.write_txt_file_from_list(inputdir, MATCHING_PAIRS_FILE, images)
+            # generate non matching pairs file
+            common.write_txt_file_from_list(inputdir, NON_MATCHING_PAIRS_FILE, [])
+
+            exe = CDVS_BIN_FOLDER + "\\" + MATCH + "\\"  + MATCH + ".exe"
+            params_path = inputdir + "\\" + params
+            param_list = [exe, MATCHING_PAIRS_FILE, NON_MATCHING_PAIRS_FILE, MODE, inputdir, inputdir, "-t",
+                          cur_archive_file, "-o", "-m", "1", "-p", params_path]
+                        #matching_output_file, "-o", "-m", "1", "-p", params_path]
+            execute_command_using_cmd(param_list)
+
+        # select best 24 (MAX_BEST_RESULTS) results
+#        score_list = extract_score_from_match_output_file(inputdir, matching_output_file, cur_images, summary)
+#        score_list = extract_score_from_match_output_file(ARCHIVE_MATCHING_OUTPUT_DIR, cur_archive_file, cur_images, summary)
+        ##score_list = extract_score_from_match_output_file(archive_dir, cur_archive_file, cur_images, summary)
+
+        score_list = extract_score_from_cur_match_output_file(cur_archive_file, cur_images)
+#        common.write_txt_file_from_list(ARCHIVE_MATCHING_OUTPUT_DIR, cur_archive_file, score_list)
+        if not exists_file(cur_score_file):
+            common.write_txt_file_from_list_of_lists(score_dir, cur_score_file.split("\\")[-1], score_list)
+        scores.extend(score_list)
+        scores = sorted(scores, key=lambda x: float(x[SORT_BY_CUSTOM_SCORE]), reverse=True)[:MAX_BEST_RESULTS]
+        #scores = zip(*sorted(zip(scores, score_list), key=operator.itemgetter(15)))
+#        score_dict = extract_score_from_match_output_file(inputdir, matching_output_file, images, summary)
+
+        # move matching files
+        #os.rename(matching_output_file, cur_archive_file)
+
+        chunk_count = chunk_count + 1
+
+    scores = add_europeana_fields(scores, summary)
+#    map(lambda x: x.append(inputdir), score_list)
+    map(lambda x: x.append(inputdir), scores)
 
     end = time.time()
     print 'Matching calculation time :', end - start, ' for query:', query
 
-    return score_dict
+    return scores
+    #return score_list
 
 
 def cleanup(inputdir, dirnames):
