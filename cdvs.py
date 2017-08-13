@@ -453,13 +453,30 @@ def all_test(inputdir, mode, params):
 
     print '+++ CDVS all test started +++'
 
+    #query_image_files = [
+    #    '2048207_03200.jpg'
+    #    , '9200397_BibliographicResource_3000126270848.jpg'
+    #    , '2048221_168723.jpg'
+    #    , '2048221_204384.jpg'
+    #    , '2048221_159833.jpg'
+    #    , '2048221_51968.jpg'
+    #    , '09102__CM_0157653.jpg'
+    #    , '2048211_121547.jpg'
+    #    , '15801_eDipRouteurBML_eDipRouteurBML_aspx_Application_AFFL_26Action_RechercherDirectement_NUID___243__AFFL_3BAfficherVueSurEnregistrement_Vue_Fiche_Principal_3BAfficherFrameset.jpg'
+    #    , '2048429_item_2CEYGKYPIG42VAGEMO3QGIMCCKW7UTKK.jpg'
+    #    , '2048419_item_RQBIVKBBXEYQVI7CKZTOTANMJTL7QGSM.jpg'
+    #    , '2048416_item_XFD7WCQNGAUWQF2KKSTQDBUVGBBSYZSF.jpg'
+    #    , '2021633_AtlantisPubliek_detail_aspx_xmldescid_14969524.jpg'
+    #]
+
     image_files = extract_collection(inputdir, mode)
 
     print '+++ CDVS all test - collection extracted +++'
 
     summary = read_collection_summary(inputdir)
     for query in image_files:
-        match_collection(inputdir, query, params, summary)
+#    for query in query_image_files:
+         match_collection(inputdir, query, params, summary)
 
     print '+++ CDVS all test completed +++'
 
